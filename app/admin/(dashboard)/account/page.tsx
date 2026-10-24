@@ -1,5 +1,5 @@
 ﻿import { redirect } from 'next/navigation';
-import { getSession, isAuthenticated, SESSION_MAX_AGE } from '@/lib/session';
+import { getSession, isAuthenticated, SESSION_MAX_AGE, formatSessionDuration } from '@/lib/session';
 import { getUserById } from '@/lib/auth';
 import { SignOutButton } from '@/components/admin/sign-out-button';
 
@@ -15,7 +15,7 @@ export default async function AccountSecurityPage() {
   const session = getSession();
   const user = session ? await getUserById(session.userId) : null;
 
-  const expiryDays = Math.max(1, Math.round(SESSION_MAX_AGE / 86400));
+  const sessionLifetime = formatSessionDuration(SESSION_MAX_AGE);
 
   return (
     <div className="space-y-8">
@@ -39,7 +39,7 @@ export default async function AccountSecurityPage() {
           </div>
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <dt className="text-muted-foreground">Session lifetime</dt>
-            <dd className="font-medium">{expiryDays} days</dd>
+            <dd className="font-medium">{sessionLifetime}</dd>
           </div>
         </dl>
       </section>

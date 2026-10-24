@@ -1,12 +1,16 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { isAuthenticated } from '@/lib/session';
+import { isAuthenticated, formatSessionDuration } from '@/lib/session';
 import { LoginForm } from '@/components/admin/login-form';
 
 export const dynamic = 'force-dynamic';
 
-const SESSION_MAX_AGE = Number(process.env.SESSION_MAX_AGE) || 60 * 60 * 24 * 7;
-const SESSION_EXPIRY_DAYS = Math.max(1, Math.round(SESSION_MAX_AGE / 86400));
+const parsedSessionMaxAge = Number(process.env.SESSION_MAX_AGE);
+const SESSION_MAX_AGE =
+  Number.isFinite(parsedSessionMaxAge) && parsedSessionMaxAge > 0
+    ? parsedSessionMaxAge
+    : 14400;
+const SESSION_EXPIRY_LABEL = formatSessionDuration(SESSION_MAX_AGE);
 
 export const metadata: Metadata = {
   title: 'Sign in',
@@ -36,8 +40,7 @@ export default async function AdminLoginPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Protected area · Sessions expire after {SESSION_EXPIRY_DAYS}{' '}
-          {SESSION_EXPIRY_DAYS === 1 ? 'day' : 'days'}
+          Protected area · Sessions expire after {SESSION_EXPIRY_LABEL}
         </p>
       </div>
     </div>

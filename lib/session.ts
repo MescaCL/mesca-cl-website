@@ -12,8 +12,29 @@ export async function isAuthenticated(): Promise<boolean> {
   return true;
 }
 
-const SESSION_MAX_AGE_SECONDS = Number(process.env.SESSION_MAX_AGE) || 60 * 60 * 24 * 7;
+const parsedSessionMaxAge = Number(process.env.SESSION_MAX_AGE);
+const SESSION_MAX_AGE_SECONDS =
+  Number.isFinite(parsedSessionMaxAge) && parsedSessionMaxAge > 0
+    ? parsedSessionMaxAge
+    : 14400;
 export const SESSION_MAX_AGE = SESSION_MAX_AGE_SECONDS;
+
+export function formatSessionDuration(seconds: number = SESSION_MAX_AGE): string {
+  const safeSeconds =
+    Number.isFinite(seconds) && seconds > 0 ? seconds : SESSION_MAX_AGE;
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const remainingSeconds = Math.floor(safeSeconds % 60);
+  const parts: string[] = [];
+
+  if (hours > 0) parts.push(`${hours} hour${hours === 1 ? '' : 's'}`);
+  if (minutes > 0) parts.push(`${minutes} minute${minutes === 1 ? '' : 's'}`);
+  if (remainingSeconds > 0) {
+    parts.push(`${remainingSeconds} second${remainingSeconds === 1 ? '' : 's'}`);
+  }
+
+  return parts.length > 0 ? parts.join(' ') : '0 seconds';
+}
 
 export function isCookieSecure(): boolean {
   const override = process.env.COOKIE_SECURE;

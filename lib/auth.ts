@@ -12,7 +12,11 @@ function getJwtSecret(): string {
   return 'dev-only-insecure-secret-change-me';
 }
 
-const SESSION_MAX_AGE = Number(process.env.SESSION_MAX_AGE) || 60 * 60 * 24 * 7;
+const parsedSessionMaxAge = Number(process.env.SESSION_MAX_AGE);
+const SESSION_MAX_AGE =
+  Number.isFinite(parsedSessionMaxAge) && parsedSessionMaxAge > 0
+    ? parsedSessionMaxAge
+    : 14400;
 
 export interface JWTPayload {
   userId: string;
