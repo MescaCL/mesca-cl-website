@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { requireAdmin, requireCsrf } from '@/lib/api-guard';
 import { getProfile, updateProfile } from '@/lib/data';
 import { createSupportCampaign } from '@/lib/data/content';
+import { storeUploadedFile, deleteStoredFile, sanitizeFilename } from '@/lib/media-storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,20 +104,25 @@ export async function POST(request: Request) {
 
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      const base64 = buffer.toString('base64');
-      const mimeType = file.type || 'image/jpeg';
-      const dataUrl = 'data:' + mimeType + ';base64,' + base64;
+
+      const safeName = sanitizeFilename(file.name);
+      const timestamp = Date.now();
+      const filename = `${timestamp}-${safeName}`;
+
+      const stored = await storeUploadedFile(filename, buffer, file.type);
 
       const alt = (formData.get('alt') as string | null) ?? file.name ?? 'Profile photo';
 
       try {
         const profile = await updateProfile({
-          profile_image_url: dataUrl,
+          profile_image_url: stored.url,
           profile_image_alt: alt,
         });
-        return NextResponse.json({ data: profile, url: dataUrl, message: 'Profile image uploaded.' });
+        return NextResponse.json({ data: profile, url: stored.url, message: 'Profile image uploaded.' });
       } catch (updateError) {
         console.error('[admin:profile] update failed', updateError);
+        // Roll back the stored file if the database update failed.
+        await deleteStoredFile(stored.storageKey);
         return NextResponse.json({ message: 'Could not update profile with image.' }, { status: 500 });
       }
     }

@@ -332,7 +332,7 @@ export function ProfileSettings() {
                 <Button type="button" variant="outline" onClick={() => setForm((prev) => ({ ...prev, profile_image_url: null }))}>Remove</Button>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">Recommended: square photo, at least 400x400px. Stored as a data URL for now.</p>
+            <p className="text-xs text-muted-foreground">Recommended: square photo, at least 400x400px. Stored in persistent media storage.</p>
           </div>
         </div>
       </section>
