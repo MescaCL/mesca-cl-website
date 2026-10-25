@@ -23,6 +23,8 @@ const projectPayloadSchema = z.object({
   featured: z.boolean().optional(),
   is_published: z.boolean().optional(),
   sort_order: z.number().int().optional(),
+  cover_image_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  gallery_urls: z.string().optional().or(z.literal('')),
   seo_title: z.string().optional().or(z.literal('')),
   seo_description: z.string().optional().or(z.literal('')),
 });
@@ -48,6 +50,8 @@ const routes = createCrudRoutes({
       'demo_url',
       'start_date',
       'last_updated',
+      'cover_image_url',
+      'gallery_urls',
       'seo_title',
       'seo_description',
     ];

@@ -68,18 +68,33 @@ The profile photo fix has been verified locally but NOT yet deployed to producti
 ### 3. Existing Base64 Profile Images
 If the production database contains a `profile_image_url` stored as a base64 data URL (from before this fix), it will still render as a data URL in the hero component. It will need to be re-uploaded through the admin dashboard to be stored properly.
 
-### 4. Cover Images for Posts and Projects
-The database schema supports `cover_image_url` and `gallery_urls` for posts and projects, but the admin UI (`app/admin/(dashboard)/posts/page.tsx` and `app/admin/(dashboard)/projects/page.tsx`) does not expose fields to set them. These can only be set directly in the database.
+### 4. Cover Images for Posts and Projects ✅ COMPLETED
+The admin UI (`app/admin/(dashboard)/posts/page.tsx` and `app/admin/(dashboard)/projects/page.tsx`) now exposes `cover_image_url` (text field) and `gallery_urls` (textarea for JSON array) fields. The API routes (`app/api/admin/posts/route.ts`, `app/api/admin/projects/route.ts`) validate and transform these fields alongside the existing nullable handling. Public pages already render `cover_image_url` and `parseGalleryUrls()` supports `gallery_urls`.
 
-### 5. Third-Party Video Embeds
-No YouTube/TikTok embed support is implemented. The `Gallery` component supports direct video files (mp4/webm/ogg) but not third-party embeds.
+### 5. Third-Party Video Embeds ✅ ALREADY IMPLEMENTED
+`components/admin/rich-text-editor.tsx` already contains `buildEmbedHtml()` supporting YouTube, Vimeo, TikTok, Instagram, Facebook, and X (Twitter) embeds with fallback links. The `Gallery` component supports direct video files (mp4/webm/ogg). No further work needed.
 
 ### 6. PROJECT_PROGRESS.md Maintenance
 This document should be updated as remaining work is completed.
 
 ## Deployment Status
 
-- Local build: ✅ Success
-- Local checks: ✅ All pass
-- Deployed to production: ❌ Not yet deployed
-- Production verification: ❌ Not yet verified
+- Local build: ✅ Success (pre-cover-image changes)
+- Local checks: ✅ All pass (pre-cover-image changes)
+- Committed to GitHub: ✅ Commit efd69f0 pushed to origin/main
+- Deployed to production: ⏳ Unknown — commit efd69f0 was pushed; Vercel auto-deploy triggered but deployment status not yet confirmed
+- Production verification: ⏳ Pending — site returns 200 OK for major pages; profile photo fix deployment not yet independently verified
+
+## Just Completed (not yet committed/deployed)
+
+- ✅ Cover image (`cover_image_url`) and gallery URLs (`gallery_urls`) fields added to posts API route + admin UI
+- ✅ Cover image (`cover_image_url`) and gallery URLs (`gallery_urls`) fields added to projects API route + admin UI
+- ✅ PROJECT_PROGRESS.md updated to reflect completed cover images + video embeds
+
+## Still Pending
+
+1. Run TypeScript, ESLint, tests, production build for the cover-image changes
+2. Commit and deploy cover-image changes to Vercel
+3. Confirm Vercel deployment of efd69f0 (and subsequent commits)
+4. Verify profile photo upload works on live production site
+5. R2 environment variables must be set in Vercel (account ID, access key, secret key, bucket name, public base URL) — code is complete, only configuration is missing

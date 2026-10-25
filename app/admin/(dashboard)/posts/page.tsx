@@ -56,6 +56,19 @@ export default function AdminPostsPage() {
         { name: 'seo_title', label: 'SEO title', type: 'text' },
         { name: 'seo_description', label: 'SEO description', type: 'textarea' },
         { name: 'featured', label: 'Featured', type: 'checkbox' },
+        {
+          name: 'cover_image_url',
+          label: 'Cover Image URL',
+          type: 'text',
+          placeholder: 'https://...',
+          help: 'Paste a media library URL for the post cover image.',
+        },
+        {
+          name: 'gallery_urls',
+          label: 'Gallery URLs',
+          type: 'textarea',
+          help: 'JSON array of image/video URLs, e.g. ["https://..."].',
+        },
       ]}
       columns={[
         {
@@ -89,6 +102,20 @@ export default function AdminPostsPage() {
                 month: 'short',
                 year: 'numeric',
               })
+            ) : (
+              '—'
+            ),
+        },
+        {
+          key: 'cover_image_url',
+          label: 'Cover',
+          render: (item) =>
+            item.cover_image_url ? (
+              <img
+                src={String(item.cover_image_url)}
+                alt="Cover"
+                className="h-8 w-8 rounded object-cover"
+              />
             ) : (
               '—'
             ),

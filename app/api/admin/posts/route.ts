@@ -20,6 +20,8 @@ const postPayloadSchema = z.object({
   scheduled_at: z.string().optional().or(z.literal('')),
   reading_time: z.number().int().positive().optional(),
   featured: z.boolean().optional(),
+  cover_image_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  gallery_urls: z.string().optional().or(z.literal('')),
   seo_title: z.string().optional().or(z.literal('')),
   seo_description: z.string().optional().or(z.literal('')),
 });
@@ -40,6 +42,8 @@ const routes = createCrudRoutes({
       'tags',
       'published_at',
       'scheduled_at',
+      'cover_image_url',
+      'gallery_urls',
       'seo_title',
       'seo_description',
     ];

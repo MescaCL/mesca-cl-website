@@ -48,6 +48,19 @@ export default function AdminProjectsPage() {
         { name: 'featured', label: 'Featured', type: 'checkbox' },
         { name: 'is_published', label: 'Published', type: 'checkbox' },
         { name: 'sort_order', label: 'Sort order', type: 'number' },
+        {
+          name: 'cover_image_url',
+          label: 'Cover Image URL',
+          type: 'text',
+          placeholder: 'https://...',
+          help: 'Paste a media library URL for the project cover image.',
+        },
+        {
+          name: 'gallery_urls',
+          label: 'Gallery URLs',
+          type: 'textarea',
+          help: 'JSON array of image/video URLs, e.g. ["https://..."].',
+        },
       ]}
       columns={[
         {
@@ -74,6 +87,20 @@ export default function AdminProjectsPage() {
               {item.is_published === 1 ? 'Live' : 'Hidden'}
             </span>
           ),
+        },
+        {
+          key: 'cover_image_url',
+          label: 'Cover',
+          render: (item) =>
+            item.cover_image_url ? (
+              <img
+                src={String(item.cover_image_url)}
+                alt="Cover"
+                className="h-8 w-8 rounded object-cover"
+              />
+            ) : (
+              '—'
+            ),
         },
         {
           key: 'featured',
