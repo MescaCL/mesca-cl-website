@@ -5,9 +5,11 @@ import { createClient, type Client } from '@libsql/client';
 
 const LOCAL_DATABASE_URL = `file:${path.join(process.cwd(), 'database', 'mesca.db')}`;
 
-let client: Client | null = null;
-let clientUrl: string | null = null;
-let clientToken: string | undefined;
+const globalForDb = globalThis as unknown as {
+  client?: Client | null;
+  clientUrl?: string | null;
+  clientToken?: string | undefined;
+};
 
 function normalizeEnv(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -59,37 +61,41 @@ export function resolveDatabaseUrl(): string {
 export const getDatabaseUrl = resolveDatabaseUrl;
 
 export function resetDatabaseClient(): void {
-  if (client) {
+  if (globalForDb.client) {
     try {
-      client.close();
+      globalForDb.client.close();
     } catch {
       // Ignore close errors during reset.
     }
   }
-  client = null;
-  clientUrl = null;
-  clientToken = undefined;
+  globalForDb.client = null;
+  globalForDb.clientUrl = null;
+  globalForDb.clientToken = undefined;
 }
 
 function getClient(): Client {
   const url = resolveDatabaseUrl();
   const authToken = normalizeEnv(process.env.TURSO_AUTH_TOKEN);
 
-  if (client && clientUrl === url && clientToken === authToken) {
-    return client;
+  if (
+    globalForDb.client &&
+    globalForDb.clientUrl === url &&
+    globalForDb.clientToken === authToken
+  ) {
+    return globalForDb.client as Client;
   }
 
-  if (client) {
+  if (globalForDb.client) {
     try {
-      client.close();
+      globalForDb.client.close();
     } catch {
       // Ignore close errors before recreating the client.
     }
   }
 
-  client = null;
-  clientUrl = null;
-  clientToken = undefined;
+  globalForDb.client = null;
+  globalForDb.clientUrl = null;
+  globalForDb.clientToken = undefined;
 
   if (url.startsWith('file:')) {
     const filePath = url.slice('file:'.length);
@@ -98,8 +104,10 @@ function getClient(): Client {
       fs.mkdirSync(dbDir, { recursive: true });
     }
   }
-  client = createClient({ url, authToken });
-  return client;
+  globalForDb.client = createClient({ url, authToken });
+  globalForDb.clientUrl = url;
+  globalForDb.clientToken = authToken;
+  return globalForDb.client as Client;
 }
 
 export interface SqliteStatement {
@@ -116,31 +124,75 @@ export interface SqliteDatabase {
 }
 
 class LibsqlDatabase implements SqliteDatabase {
-  private readonly db: Client;
+  private db: Client;
   constructor() { this.db = getClient(); }
+
   prepare(sql: string): SqliteStatement {
-    const db = this.db;
     return {
-      get: async (...params: unknown[]) => {
-        const result = await db.execute({ sql, args: params as any });
-        return toPlainObject(result.rows[0]);
+      get: async (...params: unknown[]): Promise<unknown> => {
+        try {
+          const db = getClient();
+          const result = await db.execute({ sql, args: params as any });
+          return toPlainObject(result.rows[0]);
+        } catch (error: any) {
+          if (error?.message?.includes('closed') || error?.code === 'UNKNOWN') {
+            const db = getClient();
+            const result = await db.execute({ sql, args: params as any });
+            return toPlainObject(result.rows[0]);
+          }
+          throw error;
+        }
       },
-      all: async (...params: unknown[]) => {
-        const result = await db.execute({ sql, args: params as any });
-        return result.rows.map((row) => toPlainObject(row));
+      all: async (...params: unknown[]): Promise<unknown[]> => {
+        try {
+          const db = getClient();
+          const result = await db.execute({ sql, args: params as any });
+          return result.rows.map((row) => toPlainObject(row));
+        } catch (error: any) {
+          if (error?.message?.includes('closed') || error?.code === 'UNKNOWN') {
+            const db = getClient();
+            const result = await db.execute({ sql, args: params as any });
+            return result.rows.map((row) => toPlainObject(row));
+          }
+          throw error;
+        }
       },
-      run: async (...params: unknown[]) => {
-        const result = await db.execute({ sql, args: params as any });
-        return {
-          changes: Number(result.rowsAffected ?? 0),
-          lastInsertRowid: Number(result.lastInsertRowid ?? 0),
-        };
+      run: async (...params: unknown[]): Promise<{ changes: number; lastInsertRowid: number }> => {
+        try {
+          const db = getClient();
+          const result = await db.execute({ sql, args: params as any });
+          return {
+            changes: Number(result.rowsAffected ?? 0),
+            lastInsertRowid: Number(result.lastInsertRowid ?? 0),
+          };
+        } catch (error: any) {
+          if (error?.message?.includes('closed') || error?.code === 'UNKNOWN') {
+            const db = getClient();
+            const result = await db.execute({ sql, args: params as any });
+            return {
+              changes: Number(result.rowsAffected ?? 0),
+              lastInsertRowid: Number(result.lastInsertRowid ?? 0),
+            };
+          }
+          throw error;
+        }
       },
     };
   }
+
   async exec(sql: string): Promise<void> {
-    await this.db.executeMultiple(sql);
+    try {
+      await this.db.executeMultiple(sql);
+    } catch (error: any) {
+      if (error?.message?.includes('closed') || error?.code === 'UNKNOWN') {
+        this.db = getClient();
+        await this.db.executeMultiple(sql);
+        return;
+      }
+      throw error;
+    }
   }
+
   async pragma(statement: string): Promise<unknown> {
     try {
       const result = await this.db.execute(`PRAGMA ${statement}`);
