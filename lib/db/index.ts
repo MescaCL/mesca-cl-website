@@ -3,23 +3,102 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { createClient, type Client } from '@libsql/client';
 
-const DATABASE_URL =
-  process.env.TURSO_DATABASE_URL ||
-  `file:${path.join(process.cwd(), 'database', 'mesca.db')}`;
-const DATABASE_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
+const LOCAL_DATABASE_URL = `file:${path.join(process.cwd(), 'database', 'mesca.db')}`;
 
 let client: Client | null = null;
+let clientUrl: string | null = null;
+let clientToken: string | undefined;
+
+function normalizeEnv(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+export function isProductionEnvironment(): boolean {
+  if (process.env.NODE_ENV === 'production') return true;
+  const vercelEnv = normalizeEnv(process.env.VERCEL_ENV);
+  if (vercelEnv === 'production' || vercelEnv === 'preview') return true;
+  if (normalizeEnv(process.env.VERCEL) === '1') return true;
+  return false;
+}
+
+export function resolveDatabaseUrl(): string {
+  const configuredUrl = normalizeEnv(process.env.TURSO_DATABASE_URL);
+  const production = isProductionEnvironment();
+
+  if (configuredUrl) {
+    const isRemoteTursoUrl =
+      /^libsql:\/\//i.test(configuredUrl) || /^https:\/\//i.test(configuredUrl);
+    const isLocalFile = /^file:/i.test(configuredUrl);
+
+    if (production) {
+      if (!isRemoteTursoUrl || isLocalFile) {
+        throw new Error(
+          'TURSO_DATABASE_URL must be a remote Turso URL (libsql:// or https://) in production; refusing to use a local SQLite database.'
+        );
+      }
+
+      const authToken = normalizeEnv(process.env.TURSO_AUTH_TOKEN);
+      if (!authToken) {
+        throw new Error('TURSO_AUTH_TOKEN is required in production when TURSO_DATABASE_URL is configured.');
+      }
+    }
+
+    return configuredUrl;
+  }
+
+  if (production) {
+    throw new Error(
+      'TURSO_DATABASE_URL is required in production. Refusing to fall back to a local SQLite database.'
+    );
+  }
+
+  return LOCAL_DATABASE_URL;
+}
+
+export const getDatabaseUrl = resolveDatabaseUrl;
+
+export function resetDatabaseClient(): void {
+  if (client) {
+    try {
+      client.close();
+    } catch {
+      // Ignore close errors during reset.
+    }
+  }
+  client = null;
+  clientUrl = null;
+  clientToken = undefined;
+}
 
 function getClient(): Client {
-  if (client) return client;
-  if (DATABASE_URL.startsWith('file:')) {
-    const filePath = DATABASE_URL.slice('file:'.length);
+  const url = resolveDatabaseUrl();
+  const authToken = normalizeEnv(process.env.TURSO_AUTH_TOKEN);
+
+  if (client && clientUrl === url && clientToken === authToken) {
+    return client;
+  }
+
+  if (client) {
+    try {
+      client.close();
+    } catch {
+      // Ignore close errors before recreating the client.
+    }
+  }
+
+  client = null;
+  clientUrl = null;
+  clientToken = undefined;
+
+  if (url.startsWith('file:')) {
+    const filePath = url.slice('file:'.length);
     const dbDir = path.dirname(filePath);
     if (!fs.existsSync(dbDir)) {
       fs.mkdirSync(dbDir, { recursive: true });
     }
   }
-  client = createClient({ url: DATABASE_URL, authToken: DATABASE_AUTH_TOKEN });
+  client = createClient({ url, authToken });
   return client;
 }
 
@@ -83,7 +162,7 @@ export function getDatabase(): SqliteDatabase {
 }
 
 export function getDatabasePath(): string {
-  return DATABASE_URL;
+  return resolveDatabaseUrl();
 }
 
 export function generateId(): string {
