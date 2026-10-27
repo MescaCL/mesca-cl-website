@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import DOMPurify from 'dompurify';
 import type { Post } from '@/types';
 
 /**
@@ -8,19 +9,99 @@ import type { Post } from '@/types';
  *
  * The block editor produces HTML (paragraphs, headings, lists, blockquotes,
  * images, videos) that is stored verbatim in the `posts.content` column. This
- * component renders it with the site's editorial typography.
+ * component sanitizes the HTML then renders it with the site's editorial
+ * typography.
  *
- * Security: content is authored by admins only and stored after the editor's
- * own escaping. We render it as-is so images, videos and formatting survive.
+ * Security: content is authored by admins only. We run DOMPurify before
+ * `dangerouslySetInnerHTML` as defense in depth — stripping unsafe scripts,
+ * event handlers, and untrusted iframe sources — while preserving supported
+ * video embeds (YouTube, Vimeo, TikTok, Instagram, Facebook), images, and
+ * rich-text formatting.
  */
 interface ContentRendererProps {
   content: string | null;
   className?: string;
 }
 
+// Allowed iframe src origins for third-party video embeds.
+const ALLOWED_IFRAME_ORIGINS = [
+  'https://www.youtube.com',
+  'https://player.vimeo.com',
+  'https://www.tiktok.com',
+  'https://www.instagram.com',
+  'https://www.facebook.com',
+];
+
 export function ContentRenderer({ content, className }: ContentRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const html = content ?? '';
+  const rawHtml = content ?? '';
+  const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
+    ADD_ATTR: ['allow', 'loading'],
+    ADD_TAGS: ['iframe'],
+    ALLOWED_ATTR: [
+      'alt',
+      'allow',
+      'allowfullscreen',
+      'class',
+      'frameborder',
+      'height',
+      'href',
+      'loading',
+      'rel',
+      'scrolling',
+      'src',
+      'style',
+      'target',
+      'title',
+      'width',
+    ],
+    ALLOWED_TAGS: [
+      'a',
+      'b',
+      'blockquote',
+      'br',
+      'code',
+      'div',
+      'em',
+      'figure',
+      'figcaption',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'hr',
+      'i',
+      'iframe',
+      'img',
+      'li',
+      'ol',
+      'p',
+      'pre',
+      'span',
+      'strong',
+      'u',
+      'ul',
+    ],
+    FORCE_BODY: false,
+  });
+
+  // Strip any iframe whose src is not an allowed embed origin.
+  const safeHtml = sanitizedHtml.replace(
+    /<iframe\b[^>]*src="([^"]*)"[^>]*>[\s\S]*?<\/iframe>/gi,
+    (match, src) => {
+      try {
+        const url = new URL(src);
+        if (ALLOWED_IFRAME_ORIGINS.some((origin) => url.origin === origin)) {
+          return match;
+        }
+      } catch {
+        // Not a valid URL — drop the iframe.
+      }
+      return '';
+    }
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -35,9 +116,9 @@ export function ContentRenderer({ content, className }: ContentRendererProps) {
     } else if ((window as unknown as { twttr?: { widgets?: { load?: (el?: unknown) => void } } }).twttr?.widgets?.load) {
       (window as unknown as { twttr: { widgets: { load: (el?: unknown) => void } } }).twttr.widgets.load(container);
     }
-  }, [html]);
+  }, [safeHtml]);
 
-  if (!html.trim()) {
+  if (!safeHtml.trim()) {
     return (
       <p className={className}>
         This article is being written. Check back shortly for the full story.
@@ -49,7 +130,7 @@ export function ContentRenderer({ content, className }: ContentRendererProps) {
     <div
       ref={containerRef}
       className={className ?? 'prose-invert max-w-none text-[15px] leading-[1.75] text-foreground/90'}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: safeHtml }}
     />
   );
 }

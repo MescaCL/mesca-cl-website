@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS site_settings (
   id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   key TEXT UNIQUE NOT NULL,
   value TEXT,
+  category TEXT DEFAULT 'general',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -187,7 +188,7 @@ CREATE TABLE IF NOT EXISTS support_campaigns (
   currency TEXT DEFAULT 'NGN',
   is_enabled INTEGER DEFAULT 0,
   provider TEXT,
-  provider_config TEXT,
+  provider_config TEXT,\n    bank_account_holder TEXT,\n    bank_name TEXT,\n    account_number TEXT,\n    payment_instructions TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

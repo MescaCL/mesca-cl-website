@@ -2,6 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
+const { loadEnvConfig } = require('@next/env');
+loadEnvConfig(ROOT);
 
 function dbUrl() {
   return process.env.TURSO_DATABASE_URL || `file:${process.env.DATABASE_FILE || path.join(ROOT, 'database', 'mesca.db')}`;

@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import fs from 'node:fs';
 import path from 'node:path';
+import { isProductionEnvironment } from './db/index';
 
 function env(name: string): string | undefined {
   const v = process.env[name];
@@ -48,6 +49,13 @@ export async function storeUploadedFile(filename: string, buffer: Buffer, conten
     const base = env('R2_PUBLIC_BASE_URL');
     const url = base ? `${base.replace(/\/$/, '')}/${key}` : `https://${env('R2_BUCKET_NAME')}.${env('R2_ACCOUNT_ID')}.r2.dev/${key}`;
     return { storageKey: `r2:${key}`, url };
+  }
+
+  // Local dev fallback only — never silently use ephemeral serverless storage in production.
+  if (isProductionEnvironment()) {
+    throw new Error(
+      'R2 is not configured. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET_NAME in production before allowing uploads.'
+    );
   }
 
   // Local dev fallback

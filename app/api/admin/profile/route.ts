@@ -144,7 +144,7 @@ export async function POST(request: Request) {
         description: description ?? undefined,
         suggested_amounts: suggested_amounts ?? undefined,
         target_amount: target_amount ? Number(target_amount) : undefined,
-        currency: currency ?? undefined,
+        currency: currency ?? '',
         is_enabled: is_enabled ? Number(is_enabled) : 0,
         provider: provider ?? undefined,
         provider_config: provider_config ?? undefined,

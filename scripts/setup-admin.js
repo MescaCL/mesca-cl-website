@@ -3,7 +3,11 @@ const path = require('path');
 const crypto = require('crypto');
 const readline = require('readline');
 
-const ROOT = path.join(__dirname, '..');
+const ROOT = path.join(__dirname, '..');
+
+const { loadEnvConfig } = require('@next/env');
+loadEnvConfig(ROOT);
+
 const DB_FILE = process.env.DATABASE_FILE || path.join(ROOT, 'database', 'mesca.db');
 const DEFAULT_EMAIL = 'admin@example.com';
 

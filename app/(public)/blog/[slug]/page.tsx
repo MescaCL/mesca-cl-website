@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft, Calendar, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { PostTypeBadge } from '@/components/shared/post-type-badge';
+import { ContentRenderer } from '@/components/public/content-renderer';
 import { getPostBySlug, getPosts } from '@/lib/data/content';
 
 export const dynamic = 'force-dynamic';
@@ -38,7 +39,6 @@ export default async function BlogPostPage({ params }: PageProps) {
     .filter((p) => p.id !== post.id)
     .slice(0, 3);
 
-  const paragraphs = (post.content ?? '').split('\n').filter((line) => line.trim().length > 0);
   const tags = (post.tags ?? '')
     .split(',')
     .map((tag) => tag.trim())
@@ -93,48 +93,8 @@ export default async function BlogPostPage({ params }: PageProps) {
           </div>
         </header>
 
-        <div className="mt-12 space-y-5 border-t border-border/70 pt-10 text-[15px] leading-[1.75] text-foreground/90">
-          {paragraphs.length > 0 ? (
-            paragraphs.map((paragraph, index) =>
-              paragraph.startsWith('### ') ? (
-                <h3
-                  key={index}
-                  className="pt-2 font-display text-lg font-semibold tracking-tight text-foreground"
-                >
-                  {paragraph.replace('### ', '')}
-                </h3>
-              ) : paragraph.startsWith('## ') ? (
-                <h2
-                  key={index}
-                  className="pt-4 font-display text-xl font-semibold tracking-tight text-foreground sm:text-2xl"
-                >
-                  {paragraph.replace('## ', '')}
-                </h2>
-              ) : paragraph.startsWith('- ') ? (
-                <ul key={index} className="ml-5 list-disc space-y-2 text-muted-foreground">
-                  {paragraph
-                    .split('\n')
-                    .filter((line) => line.trim().length > 0)
-                    .map((line, lineIndex) => (
-                      <li key={lineIndex}>{line.replace(/^-\s*/, '')}</li>
-                    ))}
-                </ul>
-              ) : paragraph.startsWith('> ') ? (
-                <blockquote
-                  key={index}
-                  className="border-l-2 border-primary/40 bg-muted/40 px-5 py-3 italic text-muted-foreground"
-                >
-                  {paragraph.replace('> ', '')}
-                </blockquote>
-              ) : (
-                <p key={index}>{paragraph}</p>
-              )
-            )
-          ) : (
-            <p className="text-muted-foreground">
-              This article is being written. Check back shortly for the full story.
-            </p>
-          )}
+        <div className="mt-12 space-y-5 border-t border-border/70 pt-10">
+          <ContentRenderer content={post.content} />
         </div>
 
         {tags.length > 0 && (

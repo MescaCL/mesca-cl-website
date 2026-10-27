@@ -7,18 +7,23 @@ import type { Profile, SocialLink } from '@/types';
 interface HeroProps {
   profile: Profile | null;
   socialLinks: SocialLink[];
+  settings?: Record<string, string | null>;
 }
 
-export function Hero({ profile, socialLinks }: HeroProps) {
+export function Hero({ profile, socialLinks, settings }: HeroProps) {
+  const get = (key: string): string | null => settings?.[key] ?? null;
   const headline = profile?.headline ?? 'Building the future, one project at a time.';
   const supporting =
     profile?.supporting_statement ??
     'Documenting my journey in technology, AI, and entrepreneurship — one build at a time.';
-  const eyebrow = profile?.hero_eyebrow ?? 'Builder · Engineer · Founder';
-  const primaryLabel = profile?.hero_primary_cta_label ?? 'View my work';
-  const primaryUrl = profile?.hero_primary_cta_url ?? '/projects';
-  const secondaryLabel = profile?.hero_secondary_cta_label ?? 'Start a conversation';
-  const secondaryUrl = profile?.hero_secondary_cta_url ?? '/contact';
+  const eyebrow = get('hero_eyebrow') ?? profile?.hero_eyebrow ?? 'Builder · Engineer · Founder';
+  const primaryLabel =
+    get('hero_primary_cta_label') ?? profile?.hero_primary_cta_label ?? 'View my work';
+  const primaryUrl = get('hero_primary_cta_url') ?? profile?.hero_primary_cta_url ?? '/projects';
+  const secondaryLabel =
+    get('hero_secondary_cta_label') ?? profile?.hero_secondary_cta_label ?? 'Start a conversation';
+  const secondaryUrl =
+    get('hero_secondary_cta_url') ?? profile?.hero_secondary_cta_url ?? '/contact';
   const portrait = profile?.profile_image_url ?? null;
   const portraitAlt = profile?.profile_image_alt ?? profile?.full_name ?? 'Portrait';
 
