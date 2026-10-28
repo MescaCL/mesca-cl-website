@@ -2,8 +2,6 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const { loadEnvConfig } = require('@next/env');
-loadEnvConfig(ROOT);
 const SOURCE_URL = process.env.TURSO_DATABASE_URL;
 const SOURCE_TOKEN = process.env.TURSO_AUTH_TOKEN;
 const TARGET_URL = process.env.ROLLBACK_DATABASE_URL || `file:${process.env.DATABASE_FILE || path.join(ROOT, 'database', 'mesca.rollback.db')}`;

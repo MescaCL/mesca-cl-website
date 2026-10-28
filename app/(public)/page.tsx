@@ -6,7 +6,6 @@ import { JourneyPreview } from '@/components/sections/journey-preview';
 import { LatestWriting } from '@/components/sections/latest-writing';
 import { CtaBand } from '@/components/sections/cta-band';
 import { getProfile, getSocialLinks } from '@/lib/data';
-import { getSiteSettingsMap } from '@/lib/data';
 import { getProjects, getPosts, getMilestones, getNowItems } from '@/lib/data/content';
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +13,6 @@ export const dynamic = 'force-dynamic';
 export default async function HomePage() {
   const profile = await getProfile();
   const socialLinks = await getSocialLinks(true);
-  const settings = await getSiteSettingsMap();
   const projects = await getProjects({ publishedOnly: true });
   const featuredProjects = await getProjects({ publishedOnly: true, featuredOnly: true });
   const posts = await getPosts({ publishedOnly: true, limit: 3 });
@@ -28,7 +26,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <Hero profile={profile} socialLinks={socialLinks} settings={settings} />
+      <Hero profile={profile} socialLinks={socialLinks} />
       <Stats
         projects={projects.length}
         posts={(await getPosts({ publishedOnly: true })).length}
@@ -41,7 +39,7 @@ export default async function HomePage() {
       <NowBuilding items={nowItems} />
       <JourneyPreview milestones={milestones} />
       <LatestWriting posts={posts} />
-      <CtaBand profile={profile} settings={settings} />
+      <CtaBand profile={profile} />
     </>
   );
 }

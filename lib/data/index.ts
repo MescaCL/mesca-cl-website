@@ -216,15 +216,6 @@ export async function getAllSettings(): Promise<SiteSetting[]> {
   }
 }
 
-export async function getSiteSettingsMap(): Promise<Record<string, string | null>> {
-  const rows = await getAllSettings();
-  const map: Record<string, string | null> = {};
-  for (const row of rows) {
-    map[row.key] = row.value ?? null;
-  }
-  return map;
-}
-
 export async function setSetting(key: string, value: string): Promise<void> {
   const conn = await getDatabase();
   try {

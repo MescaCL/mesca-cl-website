@@ -375,20 +375,13 @@ export async function deleteButtonConfig(id: string): Promise<boolean> {
 /* ------------------------------------------------------------------ */
 
 export interface SupportCampaignForm {
-  id?: string;
-  slug?: string;
   title: string;
-  description?: string | null;
   purpose?: string | null;
-  bank_account_holder?: string | null;
-  bank_name?: string | null;
-  account_number?: string | null;
-  payment_instructions?: string | null;
-  cover_image_url?: string | null;
+  description?: string | null;
   suggested_amounts?: string | null;
   target_amount?: number | null;
-  currency: string;
-  is_enabled: number;
+  currency?: string | null;
+  is_enabled?: number;
   provider?: string | null;
   provider_config?: string | null;
 }
@@ -408,10 +401,6 @@ export async function createSupportCampaign(data: SupportCampaignForm): Promise<
       is_enabled: data.is_enabled ?? 0,
       provider: data.provider ?? null,
       provider_config: data.provider_config ?? null,
-      bank_account_holder: data.bank_account_holder ?? null,
-      bank_name: data.bank_name ?? null,
-      account_number: data.account_number ?? null,
-      payment_instructions: data.payment_instructions ?? null,
     };
     const row = insertRow('support_campaigns', payload);
     return row as unknown as SupportCampaignForm;

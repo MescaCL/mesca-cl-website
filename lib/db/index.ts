@@ -229,45 +229,11 @@ export function readSchemaSql(): string {
   return fs.readFileSync(SCHEMA_PATH, 'utf8');
 }
 
-const COLUMN_DEFAULTS: Record<string, { table: string; column: string; sql: string }[]> = {
-  site_settings: [
-    { table: 'site_settings', column: 'category', sql: "ALTER TABLE site_settings ADD COLUMN category TEXT DEFAULT 'general'" },
-  ],
-  support_campaigns: [
-    { table: 'support_campaigns', column: 'sort_order', sql: 'ALTER TABLE support_campaigns ADD COLUMN sort_order INTEGER DEFAULT 0' },
-    { table: 'support_campaigns', column: 'bank_account_holder', sql: 'ALTER TABLE support_campaigns ADD COLUMN bank_account_holder TEXT' },
-    { table: 'support_campaigns', column: 'bank_name', sql: 'ALTER TABLE support_campaigns ADD COLUMN bank_name TEXT' },
-    { table: 'support_campaigns', column: 'account_number', sql: 'ALTER TABLE support_campaigns ADD COLUMN account_number TEXT' },
-    { table: 'support_campaigns', column: 'payment_instructions', sql: 'ALTER TABLE support_campaigns ADD COLUMN payment_instructions TEXT' },
-  ],
-};
-
-async function columnExists(db: SqliteDatabase, table: string, column: string): Promise<boolean> {
-  const rows = (await db.prepare(`PRAGMA table_info(${table})`).all()) as { name: string }[];
-  return rows.some((r) => r.name === column);
-}
-
-async function runMigrations(db: SqliteDatabase): Promise<void> {
-  for (const [table, columns] of Object.entries(COLUMN_DEFAULTS)) {
-    for (const { column, sql } of columns) {
-      try {
-        if (!(await columnExists(db, table, column))) {
-          await db.prepare(sql).run();
-          console.log(`[db:migrate] Added column ${table}.${column}`);
-        }
-      } catch (error) {
-        console.error(`[db:migrate] Failed to add column ${table}.${column}:`, error);
-      }
-    }
-  }
-}
-
 export async function initDatabase(): Promise<void> {
   const db = await getDatabase();
   try {
     await db.pragma('foreign_keys = ON');
     await db.exec(readSchemaSql());
-    await runMigrations(db);
   } finally {
     db.close();
   }

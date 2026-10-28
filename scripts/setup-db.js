@@ -2,8 +2,6 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const { loadEnvConfig } = require('@next/env');
-loadEnvConfig(ROOT);
 const DB_FILE = process.env.DATABASE_FILE || path.join(ROOT, 'database', 'mesca.db');
 const SCHEMA_FILE = path.join(ROOT, 'lib', 'db', 'schema.sql');
 
@@ -38,7 +36,7 @@ async function main() {
 
   client.close();
 
-  console.log(`Database ready (${url.startsWith('libsql://') || url.startsWith('https://') ? 'Turso' : 'local SQLite'}).`);
+  console.log(`Database ready at ${url}`);
   console.log(`Tables (${tables.length}): ${tables.join(', ')}`);
 }
 
