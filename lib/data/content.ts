@@ -375,6 +375,7 @@ export async function deleteButtonConfig(id: string): Promise<boolean> {
 /* ------------------------------------------------------------------ */
 
 export interface SupportCampaignForm {
+  id?: string;
   title: string;
   purpose?: string | null;
   description?: string | null;
@@ -384,6 +385,10 @@ export interface SupportCampaignForm {
   is_enabled?: number;
   provider?: string | null;
   provider_config?: string | null;
+  bank_account_holder?: string | null;
+  bank_name?: string | null;
+  account_number?: string | null;
+  payment_instructions?: string | null;
 }
 
 export async function createSupportCampaign(data: SupportCampaignForm): Promise<SupportCampaignForm> {
