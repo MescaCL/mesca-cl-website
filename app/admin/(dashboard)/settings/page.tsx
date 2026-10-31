@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ProfileSettings } from '@/components/admin/profile-settings';
 
-type Section = 'site' | 'hero' | 'profile-image';
+type Section = 'site' | 'hero' | 'profile-image' | 'profile-details';
 
 interface SiteSetting {
   key: string;
@@ -60,12 +61,29 @@ async function apiJson(url: string, init?: RequestInit): Promise<Response> {
     headers: {
       ...(init?.headers ?? {}),
       'Content-Type': 'application/json',
+      Accept: 'application/json',
     },
   });
   if (res.status === 401) {
     window.location.href = '/admin/login';
   }
   return res;
+}
+
+/** Fetch JSON safely: never throws on non-JSON (HTML) responses. */
+async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    const res = await apiJson(url, init);
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
+      return { ok: false, error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Request failed.' };
+  }
 }
 
 export default function AdminSettingsPage() {
@@ -79,11 +97,17 @@ export default function AdminSettingsPage() {
   const [profile, setProfile] = useState<ProfileForm>({ ...EMPTY_PROFILE });
   const [uploading, setUploading] = useState(false);
 
+  const goToSite = useCallback(() => { window.location.hash = ''; setSection('site'); }, []);
+  const goToHero = useCallback(() => { window.location.hash = 'hero'; setSection('hero'); }, []);
+  const goToProfileImage = useCallback(() => { window.location.hash = 'profile-image'; setSection('profile-image'); }, []);
+  const goToProfileDetails = useCallback(() => { window.location.hash = 'profile-details'; setSection('profile-details'); }, []);
+
   useEffect(() => {
     const updateSection = () => {
       const h = window.location.hash;
       if (h === '#hero') setSection('hero');
       else if (h === '#profile-image') setSection('profile-image');
+      else if (h === '#profile-details') setSection('profile-details');
       else setSection('site');
     };
     updateSection();
@@ -97,9 +121,9 @@ export default function AdminSettingsPage() {
       setError('');
       try {
         if (section === 'site') {
-          const res = await apiJson('/api/admin/settings');
-          if (!res.ok) throw new Error('Could not load site settings.');
-          const payload = (await res.json()) as { data?: SiteSetting[] };
+          const result = await fetchJsonSafe('/api/admin/settings');
+          if (!result.ok) throw new Error(result.error ?? 'Could not load site settings.');
+          const payload = result.data as { data?: SiteSetting[] };
           const map: Record<string, string | null> = { ...EMPTY_SITE };
           (payload.data ?? []).forEach((s: { key: string; value: string | null }) => {
             if (s.key in map) map[s.key] = s.value;
@@ -470,6 +494,9 @@ export default function AdminSettingsPage() {
         </div>
       )}
 
+      {section === 'profile-details' && (
+        <ProfileSettings />
+      )}
       {section === 'profile-image' && (
         <div className="space-y-6" id="profile-image">
           <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm">

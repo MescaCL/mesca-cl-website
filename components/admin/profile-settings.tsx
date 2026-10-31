@@ -57,6 +57,29 @@ const EMPTY: ProfileForm = {
   hero_secondary_cta_url: '/contact',
 };
 
+/** Fetch JSON safely: never throws on non-JSON (HTML) responses. */
+async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetch(url, {
+      ...init,
+      headers: {
+        ...(init?.headers ?? {}),
+        Accept: 'application/json',
+        ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      },
+    });
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
+      return { ok: false, error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Request failed.' };
+  }
+}
+
 export function ProfileSettings() {
   const [form, setForm] = useState<ProfileForm>(EMPTY);
   const [loading, setLoading] = useState(true);
@@ -70,15 +93,15 @@ export function ProfileSettings() {
   useEffect(() => {
     const load = async () => {
       try {
-        const response = await fetch('/api/admin/profile');
-        const payload = (await response.json()) as {
+        const result = await fetchJsonSafe('/api/admin/profile');
+        if (!result.ok) {
+          setError(result.error ?? 'Could not load the profile.');
+          return;
+        }
+        const payload = result.data as {
           data?: Record<string, unknown> | null;
           message?: string;
         };
-        if (!response.ok) {
-          setError(payload.message ?? 'Could not load the profile.');
-          return;
-        }
         if (payload.data) {
           const data = payload.data as unknown as ProfileForm;
           setForm({
@@ -126,7 +149,7 @@ export function ProfileSettings() {
     setError('');
 
     try {
-      const response = await fetch('/api/admin/profile', {
+      const result = await fetchJsonSafe('/api/admin/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -136,23 +159,22 @@ export function ProfileSettings() {
         }),
       });
 
-      const payload = (await response.json()) as {
+      if (!result.ok) {
+        setError(result.error ?? 'Could not save the profile.');
+        return;
+      }
+
+      const payload = result.data as {
         message?: string;
         errors?: Record<string, string>;
       };
-
-      if (!response.ok) {
-        const first = payload.errors ? Object.values(payload.errors)[0] : undefined;
-        setError(first ?? payload.message ?? 'Could not save the profile.');
-        return;
-      }
 
       setNotice(payload.message ?? 'Profile saved.');
     } catch {
       setError('Network error while saving the profile.');
     } finally {
       setSaving(false);
-    }
+  };
   };
 
   if (loading) {
@@ -320,9 +342,9 @@ export function ProfileSettings() {
                   formData.append('image', file);
                   formData.append('alt', form.profile_image_alt ?? '');
                   try {
-                    const response = await fetch('/api/admin/profile', { method: 'POST', body: formData });
-                    const payload = (await response.json()) as { url?: string; message?: string };
-                    if (!response.ok) { setError(payload.message ?? 'Could not upload the image.'); return; }
+                    const result = await fetchJsonSafe('/api/admin/profile', { method: 'POST', body: formData });
+                    if (!result.ok) { setError(result.error ?? 'Could not upload the image.'); return; }
+                    const payload = result.data as { url?: string; message?: string };
                     if (payload.url) { setForm((prev) => ({ ...prev, profile_image_url: payload.url ?? null })); setNotice('Image uploaded successfully.'); }
                   } catch { setError('Network error while uploading the image.'); }
                 }} />

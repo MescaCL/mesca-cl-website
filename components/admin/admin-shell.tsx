@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Home,
   User,
+  Image,
   FolderKanban,
   FileText,
   Inbox,
@@ -24,7 +25,8 @@ import { classNames } from '@/components/ui/utils';
 const NAV = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true },
   { href: '/admin/settings#hero', label: 'Edit Homepage', icon: Home },
-  { href: '/admin/settings#profile-image', label: 'Profile & Photograph', icon: User },
+  { href: '/admin/settings#profile-details', label: 'Profile Details', icon: User },
+  { href: '/admin/settings#profile-image', label: 'Profile & Photograph', icon: Image },
   { href: '/admin/projects', label: 'Projects', icon: FolderKanban },
   { href: '/admin/posts', label: 'Posts & Updates', icon: FileText },
   { href: '/admin/messages', label: 'Contact Messages', icon: Inbox },
