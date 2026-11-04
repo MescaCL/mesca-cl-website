@@ -2,6 +2,21 @@
 
 import { useEffect, useState } from 'react';
 
+async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetch(url, init);
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
+      return { ok: false, error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Request failed.' };
+  }
+}
+
 export default function AnalyticsDashboard() {
   const [pageViews, setPageViews] = useState<number[]>([]);
   const [totalViews, setTotalViews] = useState(0);
@@ -12,16 +27,27 @@ export default function AnalyticsDashboard() {
     async function loadAnalytics() {
       try {
         // Get total count
-        const totalResp = await fetch('/api/analytics?path=');
-        const totalData = await totalResp.json();
-        setTotalViews(totalData.count);
+        const totalResult = await fetchJsonSafe('/api/analytics?path=');
+        if (!totalResult.ok) {
+          console.error('[analytics] total fetch error', totalResult.error);
+          setTotalViews(0);
+        } else {
+          const totalData = totalResult.data as { count?: number };
+          setTotalViews(totalData.count ?? 0);
+        }
         // Fetch grouped analytics from API
-        const pathsResp = await fetch('/api/analytics');
-        const pathsData = await pathsResp.json();
-        if (pathsData && typeof pathsData === 'object') {
-          const entries = Object.entries(pathsData);
-          setVisitsByPath(new Map(entries.map(([k, v]) => [k, (v as any)?.count ?? 0])));
-          setPageViews(entries.length > 0 ? entries.map(([, v]) => (v as any)?.count ?? 0) : [0]);
+        const pathsResult = await fetchJsonSafe('/api/analytics');
+        if (!pathsResult.ok) {
+          console.error('[analytics] paths fetch error', pathsResult.error);
+          setVisitsByPath(new Map());
+          setPageViews([0]);
+        } else {
+          const pathsData = pathsResult.data;
+          if (pathsData && typeof pathsData === 'object') {
+            const entries = Object.entries(pathsData);
+            setVisitsByPath(new Map(entries.map(([k, v]) => [k, (v as any)?.count ?? 0])));
+            setPageViews(entries.length > 0 ? entries.map(([, v]) => (v as any)?.count ?? 0) : [0]);
+          }
         }
       } catch (error) {
         console.error('[analytics] fetch error', error);

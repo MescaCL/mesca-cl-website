@@ -90,22 +90,34 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Admin navigation">
-        {NAV.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setOpen(false)}
-            className={classNames(
-              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-              isActive(item.href, item.exact)
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-            )}
-          >
-            <item.icon size={16} />
-            {item.label}
-          </Link>
-        ))}
+        {NAV.map((item) => {
+          const [navPath, navHash] = item.href.split('#');
+          const isHashOnly = Boolean(navHash);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={(e) => {
+                setOpen(false);
+                if (isHashOnly) {
+                  // Hash-only navigation (same pathname): set hash directly so
+                  // hashchange fires and the settings page updates its section.
+                  e.preventDefault();
+                  window.location.hash = navHash;
+                }
+              }}
+              className={classNames(
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                isActive(item.href, item.exact)
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+              )}
+            >
+              <item.icon size={16} />
+              {item.label}
+            </Link>
+          );
+        })}
       </nav>
 
       <div className="border-t border-border/70 p-3">

@@ -41,19 +41,35 @@ export function AdminResource({
 
   const singular = itemLabel.replace(/s$/, '');
 
+
+async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetch(url, init);
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
+      return { ok: false, error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Request failed.' };
+  }
+}
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(endpoint);
-      const payload = (await response.json()) as {
+      const result = await fetchJsonSafe(endpoint);
+      if (!result.ok) {
+        setError(result.error ?? 'Could not load data.');
+        return;
+      }
+      const payload = result.data as {
         data?: Record<string, unknown>[];
         message?: string;
       };
-      if (!response.ok) {
-        setError(payload.message ?? 'Could not load data.');
-        return;
-      }
       setItems(payload.data ?? []);
     } catch {
       setError('Network error while loading data.');
@@ -105,24 +121,21 @@ export function AdminResource({
     const payload = isNew ? form : { ...form, id: editing?.id };
 
     try {
-      const response = await fetch(endpoint, {
+      const result = await fetchJsonSafe(endpoint, {
         method: isNew ? 'POST' : 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      const result = (await response.json()) as {
-        message?: string;
-        errors?: Record<string, string>;
-      };
-
-      if (!response.ok) {
-        const first = result.errors ? Object.values(result.errors)[0] : undefined;
-        setFormError(first ?? result.message ?? 'Could not save. Please try again.');
+      if (!result.ok) {
+        const payloadData = result.data as { message?: string; errors?: Record<string, string> } | undefined;
+        const first = payloadData?.errors ? Object.values(payloadData.errors)[0] : undefined;
+        setFormError(first ?? payloadData?.message ?? 'Could not save. Please try again.');
         return;
       }
 
-      setNotice(result.message ?? 'Saved.');
+      const data = result.data as { message?: string } | undefined;
+      setNotice(data?.message ?? 'Saved.');
       setEditing(null);
       await load();
     } catch {
@@ -136,15 +149,15 @@ export function AdminResource({
     if (!window.confirm('Delete this item? This cannot be undone.')) return;
 
     try {
-      const response = await fetch(`${endpoint}?id=${encodeURIComponent(id)}`, {
+      const result = await fetchJsonSafe(`${endpoint}?id=${encodeURIComponent(id)}`, {
         method: 'DELETE',
       });
-      const result = (await response.json()) as { message?: string };
-      if (!response.ok) {
-        setError(result.message ?? 'Could not delete.');
+      if (!result.ok) {
+        setError(result.error ?? 'Could not delete.');
         return;
       }
-      setNotice(result.message ?? 'Deleted.');
+      const payload = result.data as { message?: string } | undefined;
+      setNotice(payload?.message ?? 'Deleted.');
       await load();
     } catch {
       setError('Network error while deleting.');

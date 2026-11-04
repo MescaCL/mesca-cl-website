@@ -5,6 +5,22 @@ import { Loader2, Plus, Search, Trash2, Image as ImageIcon, Video as VideoIcon }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+
+async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetch(url, init);
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
+      return { ok: false, error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Request failed.' };
+  }
+}
+
 interface MediaFile {
   id: string;
   filename: string;
@@ -28,12 +44,12 @@ export default function AdminMediaPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/media');
-      const payload = (await response.json()) as { data?: MediaFile[]; message?: string };
-      if (!response.ok) {
-        setNotice(payload.message ?? 'Could not load media.');
+      const result = await fetchJsonSafe('/api/admin/media');
+      if (!result.ok) {
+        setNotice(result.error ?? 'Could not load media.');
         return;
       }
+      const payload = result.data as { data?: MediaFile[]; message?: string };
       setItems(payload.data ?? []);
     } catch {
       setNotice('Network error while loading media.');
@@ -69,10 +85,9 @@ export default function AdminMediaPage() {
   const handleDelete = useCallback(async (id: string) => {
     setDeleting(id);
     try {
-      const response = await fetch(`/api/admin/media?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-      if (!response.ok) {
-        const payload = (await response.json()) as { message?: string };
-        setNotice(payload.message ?? 'Could not delete media.');
+      const result = await fetchJsonSafe(`/api/admin/media?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!result.ok) {
+        setNotice(result.error ?? 'Could not delete media.');
         return;
       }
       setItems((prev) => prev.filter((item) => item.id !== id));

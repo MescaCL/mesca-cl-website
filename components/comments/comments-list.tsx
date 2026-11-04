@@ -15,6 +15,21 @@ const STATUS_LABEL: Record<string, string> = {
   rejected: 'Rejected',
 };
 
+async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetch(url, init);
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
+      return { ok: false, error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Request failed.' };
+  }
+}
+
 export function CommentsList({ postId, initialComments, approvedOnly }: Props) {
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [loading, setLoading] = useState(false);
@@ -27,16 +42,15 @@ export function CommentsList({ postId, initialComments, approvedOnly }: Props) {
       const params = new URLSearchParams();
       if (approvedOnly) params.set('status', 'approved');
       params.set('post_id', postId);
-      const res = await fetch(`/api/admin/comments?${params.toString()}`, {
+      const result = await fetchJsonSafe(`/api/admin/comments?${params.toString()}`, {
         cache: 'no-store',
         headers: { 'x-csrf-token': (window as unknown as { csrfToken: string }).csrfToken },
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message ?? 'Failed to load comments.');
+      if (!result.ok) {
+        throw new Error(result.error ?? 'Failed to load comments.');
       }
-      const data = await res.json();
-      setComments(data.data ?? []);
+      const data = result.data;
+      setComments(data?.data ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load comments.');
     } finally {
@@ -51,14 +65,13 @@ export function CommentsList({ postId, initialComments, approvedOnly }: Props) {
   const approve = async (id: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/comments`, {
+      const result = await fetchJsonSafe(`/api/admin/comments`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': (window as unknown as { csrfToken: string }).csrfToken },
         body: JSON.stringify({ id, status: 'approved' }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message ?? 'Failed to approve.');
+      if (!result.ok) {
+        throw new Error(result.error ?? 'Failed to approve.');
       }
       await fetchComments();
     } catch (e) {
@@ -71,14 +84,13 @@ export function CommentsList({ postId, initialComments, approvedOnly }: Props) {
   const reject = async (id: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/comments`, {
+      const result = await fetchJsonSafe(`/api/admin/comments`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': (window as unknown as { csrfToken: string }).csrfToken },
         body: JSON.stringify({ id, status: 'rejected' }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message ?? 'Failed to reject.');
+      if (!result.ok) {
+        throw new Error(result.error ?? 'Failed to reject.');
       }
       await fetchComments();
     } catch (e) {
@@ -92,13 +104,12 @@ export function CommentsList({ postId, initialComments, approvedOnly }: Props) {
     if (!confirm('Delete this comment?')) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/comments?id=${id}`, {
+      const result = await fetchJsonSafe(`/api/admin/comments?id=${id}`, {
         method: 'DELETE',
         headers: { 'x-csrf-token': (window as unknown as { csrfToken: string }).csrfToken },
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message ?? 'Failed to delete.');
+      if (!result.ok) {
+        throw new Error(result.error ?? 'Failed to delete.');
       }
       await fetchComments();
     } catch (e) {

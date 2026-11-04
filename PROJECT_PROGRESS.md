@@ -90,11 +90,46 @@ This document should be updated as remaining work is completed.
 - ✅ Cover image (`cover_image_url`) and gallery URLs (`gallery_urls`) fields added to posts API route + admin UI
 - ✅ Cover image (`cover_image_url`) and gallery URLs (`gallery_urls`) fields added to projects API route + admin UI
 - ✅ PROJECT_PROGRESS.md updated to reflect completed cover images + video embeds
+- ✅ Fixed TypeScript error in `app/admin/(dashboard)/settings/page.tsx:233` — `profile_image_url: payload.url ?? null`
+- ✅ Replaced all unsafe `response.json()` calls in `components/admin/admin-resource.tsx` with `fetchJsonSafe` helper (3 calls)
+- ✅ Replaced all unsafe `response.json()` calls in `components/admin/image-picker.tsx` with `fetchJsonSafe` helper (2 calls)
+- ✅ Added `fetchJsonSafe` helper to `admin-resource.tsx`, `image-picker.tsx`
+- ✅ Replaced all unsafe `response.json()` calls in `components/admin/login-form.tsx` with `fetchJsonSafe`
+- ✅ Replaced all unsafe `response.json()` calls in `components/admin/messages-inbox.tsx` with `fetchJsonSafe`
+- ✅ Replaced all unsafe `response.json()` calls in `app/admin/(dashboard)/settings/page.tsx` with `fetchJsonSafe` (3 calls: profile load, site settings save, profile save)
+- ✅ Replaced all unsafe `response.json()` calls in `components/comments/comments-form.tsx` with `fetchJsonSafe`
+- ✅ Replaced all unsafe `response.json()` calls in `components/comments/comments-list.tsx` with `fetchJsonSafe` (5 calls)
+- ✅ Replaced all unsafe `response.json()` calls in `components/contact/contact-form.tsx` with `fetchJsonSafe`
+- ✅ Replaced all unsafe `response.json()` calls in `components/newsletter/newsletter-form.tsx` with `fetchJsonSafe`
+- ✅ Verified all API routes used by admin-resource.tsx return correct JSON structures
+- ✅ TypeScript compiles cleanly (0 errors)
+- ✅ All 17 tests pass
+- ✅ Production build succeeds
+
+## Browser Testing — Admin Settings Page (Completed)
+
+All 10 Playwright browser tests passed against `http://localhost:3000` with authenticated admin user `test@mesca.cl`:
+
+| Test | Result |
+|------|--------|
+| Login redirects to /admin | PASS |
+| Settings page loads - Site Settings section | PASS |
+| Navigate to Hero section via hash | PASS |
+| Navigate to Profile Details section via hash | PASS |
+| Navigate to Profile Image section via hash | PASS |
+| Hash-only nav links switch sections | PASS |
+| Save site name change, persist after reload | PASS |
+| Save hero settings change, persist after reload | PASS |
+| Profile image section shows photo/placeholder | PASS |
+| Browser console errors check | PASS |
+
+No console errors or failed network requests across all 4 section navigations.
 
 ## Still Pending
 
-1. Run TypeScript, ESLint, tests, production build for the cover-image changes
-2. Commit and deploy cover-image changes to Vercel
-3. Confirm Vercel deployment of efd69f0 (and subsequent commits)
-4. Verify profile photo upload works on live production site
+1. Commit and deploy all changes to Vercel
+2. Confirm Vercel deployment
+3. Verify production site loads correctly over HTTPS
+4. Fix production JSON error (`Unexpected token '<', "<!DOCTYPE..." is not valid JSON`) — investigate failing API request
 5. R2 environment variables must be set in Vercel (account ID, access key, secret key, bucket name, public base URL) — code is complete, only configuration is missing
+6. Broader website verification (public site, homepage editor, posts, projects, contact, comments, newsletter, analytics, auth)

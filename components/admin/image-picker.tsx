@@ -14,6 +14,21 @@ interface MediaItem {
   alt_text: string | null;
 }
 
+async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetch(url, init);
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
+      return { ok: false, error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Request failed.' };
+  }
+}
+
 interface ImagePickerProps {
   value: string;
   onChange: (url: string) => void;
@@ -32,12 +47,12 @@ export function ImagePicker({ value, onChange, label = 'Image' }: ImagePickerPro
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/admin/media');
-      const payload = (await res.json()) as { data?: MediaItem[]; message?: string };
-      if (!res.ok) {
-        setError(payload.message ?? 'Could not load media.');
+      const result = await fetchJsonSafe('/api/admin/media');
+      if (!result.ok) {
+        setError(result.error ?? 'Could not load media.');
         return;
       }
+      const payload = result.data as { data?: MediaItem[]; message?: string };
       setItems((payload.data ?? []).filter((m) => m.file_type?.startsWith('image/')));
     } catch {
       setError('Network error.');
@@ -56,9 +71,14 @@ export function ImagePicker({ value, onChange, label = 'Image' }: ImagePickerPro
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch('/api/admin/media', { method: 'POST', body: formData });
-      const payload = (await res.json()) as { media?: MediaItem; message?: string };
-      if (!res.ok || !payload.media?.file_url) {
+      const result = await fetchJsonSafe('/api/admin/media', { method: 'POST', body: formData });
+      if (!result.ok) {
+        const payload = result.data as { message?: string; media?: MediaItem } | undefined;
+        setError(payload?.message ?? 'Upload failed.');
+        return;
+      }
+      const payload = result.data as { media?: MediaItem; message?: string };
+      if (!payload.media?.file_url) {
         setError(payload.message ?? 'Upload failed.');
         return;
       }

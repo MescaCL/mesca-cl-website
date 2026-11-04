@@ -7,6 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetch(url, init);
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
+      return { ok: false, error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Request failed.' };
+  }
+}
+
 export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -21,16 +36,15 @@ export function LoginForm() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const result = await fetchJsonSafe('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
-      const payload = (await response.json()) as { message?: string };
-
-      if (!response.ok) {
-        setError(payload.message ?? 'Sign-in failed. Please try again.');
+      if (!result.ok) {
+        const payload = result.data as { message?: string } | undefined;
+        setError(payload?.message ?? 'Sign-in failed. Please try again.');
         return;
       }
 

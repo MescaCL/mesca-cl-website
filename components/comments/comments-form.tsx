@@ -7,6 +7,21 @@ interface Props {
   onSubmitted?: () => void;
 }
 
+async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetch(url, init);
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
+      return { ok: false, error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Request failed.' };
+  }
+}
+
 export function CommentsForm({ postId, onSubmitted }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -19,13 +34,12 @@ export function CommentsForm({ postId, onSubmitted }: Props) {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch('/api/comments', {
+      const result = await fetchJsonSafe('/api/comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': (window as unknown as { csrfToken: string }).csrfToken },
         body: JSON.stringify({ post_id: postId, author_name: name, author_email: email, content }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message ?? 'Failed to submit.');
+      if (!result.ok) throw new Error(result.error ?? 'Failed to submit.');
       setName('');
       setEmail('');
       setContent('');

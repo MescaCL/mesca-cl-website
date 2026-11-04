@@ -6,6 +6,21 @@ import { Inbox, Loader2, Mail, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { classNames } from '@/components/ui/utils';
 
+async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetch(url, init);
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
+      return { ok: false, error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Request failed.' };
+  }
+}
+
 interface Message {
   id: string;
   name: string;
@@ -31,12 +46,12 @@ export function MessagesInbox() {
     setError('');
     try {
       const query = filter === 'all' ? '' : `?status=${filter}`;
-      const response = await fetch(`/api/admin/contacts${query}`);
-      const payload = (await response.json()) as { data?: Message[]; message?: string };
-      if (!response.ok) {
-        setError(payload.message ?? 'Could not load messages.');
+      const result = await fetchJsonSafe(`/api/admin/contacts${query}`);
+      if (!result.ok) {
+        setError(result.error ?? 'Could not load messages.');
         return;
       }
+      const payload = result.data as { data?: Message[]; message?: string };
       setMessages(payload.data ?? []);
     } catch {
       setError('Network error while loading messages.');

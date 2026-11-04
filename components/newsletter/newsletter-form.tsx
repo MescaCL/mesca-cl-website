@@ -2,6 +2,21 @@
 
 import { useState } from 'react';
 
+async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetch(url, init);
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
+      return { ok: false, error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Request failed.' };
+  }
+}
+
 export function NewsletterForm({ source = 'website' }: { source?: string }) {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -12,13 +27,12 @@ export function NewsletterForm({ source = 'website' }: { source?: string }) {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch('/api/newsletter', {
+      const result = await fetchJsonSafe('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': (window as unknown as { csrfToken: string }).csrfToken },
         body: JSON.stringify({ email, source }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message ?? 'Failed to subscribe.');
+      if (!result.ok) throw new Error(result.error ?? 'Failed to subscribe.');
       setEmail('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to subscribe.');

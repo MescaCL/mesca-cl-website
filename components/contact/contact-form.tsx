@@ -10,6 +10,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { contactSchema } from '@/lib/validations';
 import type { z } from 'zod';
 
+async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetch(url, init);
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
+      return { ok: false, error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}` };
+    }
+    const data = await res.json();
+    return { ok: res.ok, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Request failed.' };
+  }
+}
+
 type ContactFormValues = z.infer<typeof contactSchema>;
 
 const CATEGORIES = [
@@ -60,22 +75,22 @@ export function ContactForm() {
     setServerMessage('');
 
     try {
-      const response = await fetch('/api/contact', {
+      const result = await fetchJsonSafe('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
-      const payload = (await response.json()) as { message?: string };
-
-      if (!response.ok) {
+      if (!result.ok) {
+        const payload = result.data as { message?: string } | undefined;
         setStatus('error');
-        setServerMessage(payload.message ?? 'Something went wrong. Please try again.');
+        setServerMessage(payload?.message ?? 'Something went wrong. Please try again.');
         return;
       }
 
+      const payload = result.data as { message?: string } | undefined;
       setStatus('success');
-      setServerMessage(payload.message ?? 'Thanks — your message has been received.');
+      setServerMessage(payload?.message ?? 'Thanks — your message has been received.');
       reset();
     } catch {
       setStatus('error');

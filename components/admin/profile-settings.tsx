@@ -80,7 +80,9 @@ async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boo
   }
 }
 
-export function ProfileSettings() {
+export function ProfileSettings({
+  hideImageUpload = false,
+}: { hideImageUpload?: boolean } = {}) {
   const [form, setForm] = useState<ProfileForm>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -316,6 +318,7 @@ export function ProfileSettings() {
         </div>
       </section>
 
+      {!hideImageUpload && (
       <section className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
         <h2 id="profile-image" className="font-display text-lg font-semibold tracking-tight">Profile image</h2>
         <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start">
@@ -358,6 +361,7 @@ export function ProfileSettings() {
           </div>
         </div>
       </section>
+      )}
 
       <section className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
         <h2 className="font-display text-lg font-semibold tracking-tight">Floating buttons</h2>
