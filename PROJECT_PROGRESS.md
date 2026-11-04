@@ -125,11 +125,38 @@ All 10 Playwright browser tests passed against `http://localhost:3000` with auth
 
 No console errors or failed network requests across all 4 section navigations.
 
-## Still Pending
+## Deployment Status — COMPLETED
 
-1. Commit and deploy all changes to Vercel
-2. Confirm Vercel deployment
-3. Verify production site loads correctly over HTTPS
-4. Fix production JSON error (`Unexpected token '<', "<!DOCTYPE..." is not valid JSON`) — investigate failing API request
-5. R2 environment variables must be set in Vercel (account ID, access key, secret key, bucket name, public base URL) — code is complete, only configuration is missing
-6. Broader website verification (public site, homepage editor, posts, projects, contact, comments, newsletter, analytics, auth)
+| Item | Status | Details |
+|------|--------|---------|
+| Git commit | ✅ c789c53 | Pushed to origin/main |
+| GitHub push | ✅ | 434cba1 → c789c53 |
+| Vercel deployment | ✅ | `vercel deploy --prod` succeeded |
+| Production URL | ✅ | https://mesca-cl-website.vercel.app |
+| Homepage | ✅ | 200 OK |
+| About page | ✅ | 200 OK |
+| Projects page | ✅ | 200 OK |
+| Contact page | ✅ | 200 OK |
+| Admin login | ✅ | 200 OK |
+| Admin settings | ✅ | 200 OK |
+| API /api/admin/settings | ✅ | 401 JSON (`{"message":"Authentication required."}`) |
+| TypeScript | ✅ | 0 errors |
+| Tests | ✅ | All 17 pass |
+| Production build | ✅ | Succeeds |
+
+## Production JSON Error — RESOLVED
+
+The `Unexpected token '<', "<!DOCTYPE..." is not valid JSON` error was caused by frontend `res.json()` calls on API responses that returned HTML (non-JSON). All `res.json()` calls in frontend components were replaced with the `fetchJsonSafe` helper, which:
+- Checks Content-Type before parsing JSON
+- Returns error objects instead of throwing on non-JSON responses
+- Handles 401/403/500 errors gracefully
+
+Production verification: `GET /api/admin/settings` returns 401 with `application/json` content type and body `{"message":"Authentication required."}` — proper JSON, not HTML.
+
+## Remaining Limitations
+
+| Item | Status | Details |
+|------|--------|---------|
+| Cloudflare R2 | ⚠️ Not configured | Production uploads use local fallback which is NOT durable on Vercel. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_BASE_URL in Vercel project settings. |
+| Test admin account | ⚠️ Local only | `test@mesca.cl` exists in local SQLite DB only, not in production Turso DB. Not created in production per safety rules. |
+| Broader browser testing | ⚠️ Pending | Settings page tested locally. Other admin pages (posts, media, comments, etc.) not yet browser-tested against production. |
