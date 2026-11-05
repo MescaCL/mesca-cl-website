@@ -129,8 +129,8 @@ No console errors or failed network requests across all 4 section navigations.
 
 | Item | Status | Details |
 |------|--------|---------|
-| Git commit | ✅ c789c53 | Pushed to origin/main |
-| GitHub push | ✅ | 434cba1 → c789c53 |
+| Git commit | ✅ 9929455 | Pushed to origin/main |
+| GitHub push | ✅ | 7ef031a → 9929455 |
 | Vercel deployment | ✅ | `vercel deploy --prod` succeeded |
 | Production URL | ✅ | https://mesca-cl-website.vercel.app |
 | Homepage | ✅ | 200 OK |
@@ -153,6 +153,30 @@ The `Unexpected token '<', "<!DOCTYPE..." is not valid JSON` error was caused by
 
 Production verification: `GET /api/admin/settings` returns 401 with `application/json` content type and body `{"message":"Authentication required."}` — proper JSON, not HTML.
 
+## Production Database Schema Fixes
+
+### Issue A — Missing `category` column in `site_settings`
+- Production Turso database was missing the `category` column expected by `app/api/admin/settings/route.ts`
+- Error: `SQLite input error: no such column: category (at offset 23)` (confirmed in Vercel production logs)
+- Migration applied: `ALTER TABLE site_settings ADD COLUMN category TEXT DEFAULT 'general'`
+- All 5 existing settings rows preserved with `category: general`
+- Backup created: `backups/mesca-prod-backup-2026-11-05T16-01-29-108Z.db`
+- Verification: `SELECT id, key, value, category FROM site_settings ORDER BY category ASC, key ASC` returns 5 rows successfully
+
+### Issue B — Missing `sort_order` column in `support_campaigns`
+- `/support` page returning 500 because `getSupportCampaigns()` queries `sort_order` which didn't exist
+- Error: `SQLite input error: no such column: sort_order (at offset 62)` (confirmed in Vercel production logs)
+- Migration applied: `ALTER TABLE support_campaigns ADD COLUMN sort_order INTEGER DEFAULT 0`
+- Verification: `SELECT * FROM support_campaigns ORDER BY sort_order ASC, created_at DESC` returns 0 rows successfully
+- Note: `/support` page still showing error on production — may indicate Vercel connects to a different Turso database instance; same migration may need to be applied there
+
+## FormData Content-Type Fix
+
+**Files changed:**
+- `app/admin/(dashboard)/settings/page.tsx` — `apiJson()` helper now detects FormData and skips setting `Content-Type: application/json`, allowing the browser to supply `multipart/form-data` with its own boundary
+- `components/admin/profile-settings.tsx` — `fetchJsonSafe()` helper now detects FormData and skips setting `Content-Type: application/json`
+- `lib/media-storage.ts` — `isR2Configured()` now checks all 5 required R2 env vars; `storeUploadedFile()` throws a clear error if R2 is not configured instead of silently falling back to local filesystem
+
 ## Remaining Limitations
 
 | Item | Status | Details |
@@ -160,3 +184,4 @@ Production verification: `GET /api/admin/settings` returns 401 with `application
 | Cloudflare R2 | ⚠️ Not configured | Production uploads use local fallback which is NOT durable on Vercel. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_BASE_URL in Vercel project settings. |
 | Test admin account | ⚠️ Local only | `test@mesca.cl` exists in local SQLite DB only, not in production Turso DB. Not created in production per safety rules. |
 | Broader browser testing | ⚠️ Pending | Settings page tested locally. Other admin pages (posts, media, comments, etc.) not yet browser-tested against production. |
+| /support page | ⚠️ Pre-existing | 500 error due to missing `sort_order` column — migration applied locally, may need to be applied on Vercel's database instance |
