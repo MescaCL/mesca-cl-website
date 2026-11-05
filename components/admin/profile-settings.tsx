@@ -60,13 +60,27 @@ const EMPTY: ProfileForm = {
 /** Fetch JSON safely: never throws on non-JSON (HTML) responses. */
 async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
   try {
+    const isFormData = init?.body instanceof FormData;
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+    };
+    if (init?.headers) {
+      if (init.headers instanceof Headers) {
+        init.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+      } else {
+        Object.assign(headers, init.headers);
+      }
+    }
+    // Never set Content-Type for FormData — the browser must supply
+    // multipart/form-data with its own boundary.
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
     const res = await fetch(url, {
       ...init,
-      headers: {
-        ...(init?.headers ?? {}),
-        Accept: 'application/json',
-        ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-      },
+      headers,
     });
     const ct = res.headers.get('content-type') ?? '';
     if (!ct.includes('application/json')) {

@@ -82,13 +82,27 @@ const EMPTY_SITE: Record<string, string | null> = {
 };
 
 async function apiJson(url: string, init?: RequestInit): Promise<Response> {
+  const isFormData = init?.body instanceof FormData;
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+  };
+  if (init?.headers) {
+    if (init.headers instanceof Headers) {
+      init.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+    } else {
+      Object.assign(headers, init.headers);
+    }
+  }
+  // Never set Content-Type for FormData — the browser must supply
+  // multipart/form-data with its own boundary. For JSON bodies, set it explicitly.
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
   const res = await fetch(url, {
     ...init,
-    headers: {
-      ...(init?.headers ?? {}),
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
+    headers,
   });
   if (res.status === 401) {
     window.location.href = '/admin/login';

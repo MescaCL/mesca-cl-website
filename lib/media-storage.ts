@@ -8,7 +8,13 @@ function env(name: string): string | undefined {
 }
 
 export function isR2Configured(): boolean {
-  return Boolean(env('R2_ACCOUNT_ID') && env('R2_ACCESS_KEY_ID') && env('R2_SECRET_ACCESS_KEY') && env('R2_BUCKET_NAME'));
+  return Boolean(
+    env('R2_ACCOUNT_ID') &&
+    env('R2_ACCESS_KEY_ID') &&
+    env('R2_SECRET_ACCESS_KEY') &&
+    env('R2_BUCKET_NAME') &&
+    env('R2_PUBLIC_BASE_URL')
+  );
 }
 
 let r2Client: S3Client | null = null;
@@ -50,11 +56,10 @@ export async function storeUploadedFile(filename: string, buffer: Buffer, conten
     return { storageKey: `r2:${key}`, url };
   }
 
-  // Local dev fallback
-  if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-  const filePath = path.join(UPLOAD_DIR, filename);
-  fs.writeFileSync(filePath, buffer);
-  return { storageKey: `local:${filename}`, url: `/uploads/${filename}` };
+  // Production must not silently fall back to a non-durable local filesystem.
+  throw new Error(
+    'Cloudflare R2 is not configured. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, and R2_PUBLIC_BASE_URL in Vercel project settings.'
+  );
 }
 
 export async function deleteStoredFile(storageKey: string): Promise<void> {
