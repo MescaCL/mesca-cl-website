@@ -11,7 +11,9 @@ export async function GET() {
   if (unauthorized) return unauthorized;
 
   try {
-    return NextResponse.json({ data: await getProfile() });
+    const profile = await getProfile();
+    console.log('[admin:profile] GET returned:', { profileImageUrl: profile?.profile_image_url ?? null, id: profile?.id ?? null });
+    return NextResponse.json({ data: profile });
   } catch (error) {
     console.error('[admin:profile] load failed', error);
     return NextResponse.json({ message: 'Could not load profile.' }, { status: 500 });
@@ -75,6 +77,7 @@ export async function PUT(request: Request) {
 
   try {
     const profile = await updateProfile(payload);
+    console.log('[admin:profile] PUT updateProfile returned:', { profileImageUrl: profile?.profile_image_url ?? null, id: profile?.id ?? null, keys: Object.keys(payload) });
     return NextResponse.json({ data: profile, message: 'Profile updated.' });
   } catch (error) {
     console.error('[admin:profile] update failed', error);
@@ -111,6 +114,8 @@ export async function POST(request: Request) {
 
       const stored = await storeUploadedFile(filename, buffer, file.type);
 
+      console.log('[admin:profile] uploaded to storage:', { url: stored.url, storageKey: stored.storageKey });
+
       const alt = (formData.get('alt') as string | null) ?? file.name ?? 'Profile photo';
 
       try {
@@ -118,6 +123,12 @@ export async function POST(request: Request) {
           profile_image_url: stored.url,
           profile_image_alt: alt,
         });
+        console.log('[admin:profile] updateProfile returned:', { profileImageUrl: profile?.profile_image_url ?? null, id: profile?.id ?? null });
+        if (!profile) {
+          console.error('[admin:profile] updateProfile returned null — no profile row updated');
+          await deleteStoredFile(stored.storageKey);
+          return NextResponse.json({ message: 'Could not update profile with image.' }, { status: 500 });
+        }
         return NextResponse.json({ data: profile, url: stored.url, message: 'Profile image uploaded.' });
       } catch (updateError) {
         console.error('[admin:profile] update failed', updateError);

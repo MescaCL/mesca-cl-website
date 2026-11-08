@@ -35,10 +35,12 @@ export async function updateProfile(data: Partial<Profile>): Promise<Profile | n
       await conn
         .prepare(`UPDATE profiles SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
         .run(...fields.map((key) => (data as Record<string, unknown>)[key]), existing.id);
+      console.log('[profile] UPDATE executed:', { fields, whereId: existing.id });
     }
     const row = await conn
       .prepare('SELECT * FROM profiles WHERE id = ?')
       .get(existing.id) as Profile | undefined;
+    console.log('[profile] read back:', { profileImageUrl: row?.profile_image_url ?? null, id: row?.id ?? null });
     return row ?? null;
   } finally {
     conn.close();

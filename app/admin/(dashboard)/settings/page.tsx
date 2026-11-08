@@ -186,7 +186,7 @@ export default function AdminSettingsPage() {
             if (s.key in map) map[s.key] = s.value;
           });
           setSiteValues(map);
-        } else if (section === 'hero' || section === 'profile-details') {
+        } else if (section === 'hero' || section === 'profile-details' || section === 'profile-image') {
           const result = await fetchJsonSafe('/api/admin/profile');
           if (!result.ok) throw new Error(result.error ?? 'Could not load profile.');
           const payload = result.data as { data?: Record<string, unknown> };
