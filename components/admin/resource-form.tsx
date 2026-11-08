@@ -3,9 +3,10 @@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { ImagePicker } from '@/components/admin/image-picker';
 import { classNames } from '@/components/ui/utils';
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'checkbox' | 'select' | 'date';
+export type FieldType = 'text' | 'textarea' | 'number' | 'checkbox' | 'select' | 'date' | 'image';
 
 export interface FieldDef {
   name: string;
@@ -90,6 +91,14 @@ export function ResourceForm({ fields, form, onChange }: ResourceFormProps) {
                     : event.target.value
                 )
               }
+            />
+          )}
+
+          {field.type === 'image' && (
+            <ImagePicker
+              value={String(form[field.name] ?? '')}
+              onChange={(url) => onChange(field.name, url)}
+              label={field.label}
             />
           )}
 

@@ -50,10 +50,9 @@ export default function AdminProjectsPage() {
         { name: 'sort_order', label: 'Sort order', type: 'number' },
         {
           name: 'cover_image_url',
-          label: 'Cover Image URL',
-          type: 'text',
-          placeholder: 'https://...',
-          help: 'Paste a media library URL for the project cover image.',
+          label: 'Cover Image',
+          type: 'image',
+          help: 'Select or upload an image from the media library for the project cover.',
         },
         {
           name: 'gallery_urls',

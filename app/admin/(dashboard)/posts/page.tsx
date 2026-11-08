@@ -58,10 +58,9 @@ export default function AdminPostsPage() {
         { name: 'featured', label: 'Featured', type: 'checkbox' },
         {
           name: 'cover_image_url',
-          label: 'Cover Image URL',
-          type: 'text',
-          placeholder: 'https://...',
-          help: 'Paste a media library URL for the post cover image.',
+          label: 'Cover Image',
+          type: 'image',
+          help: 'Select or upload an image from the media library for the post cover.',
         },
         {
           name: 'gallery_urls',
