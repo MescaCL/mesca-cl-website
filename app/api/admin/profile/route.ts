@@ -78,6 +78,9 @@ export async function PUT(request: Request) {
   try {
     const profile = await updateProfile(payload);
     console.log('[admin:profile] PUT updateProfile returned:', { profileImageUrl: profile?.profile_image_url ?? null, id: profile?.id ?? null, keys: Object.keys(payload) });
+    if (!profile) {
+      return NextResponse.json({ message: 'Could not update profile.' }, { status: 500 });
+    }
     return NextResponse.json({ data: profile, message: 'Profile updated.' });
   } catch (error) {
     console.error('[admin:profile] update failed', error);

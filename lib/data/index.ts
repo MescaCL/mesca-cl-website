@@ -41,6 +41,26 @@ export async function updateProfile(data: Partial<Profile>): Promise<Profile | n
       .prepare('SELECT * FROM profiles WHERE id = ?')
       .get(existing.id) as Profile | undefined;
     console.log('[profile] read back:', { profileImageUrl: row?.profile_image_url ?? null, id: row?.id ?? null });
+
+    if (fields.length > 0 && row) {
+      const submittedValues: Record<string, unknown> = {};
+      const persistedValues: Record<string, unknown> = {};
+      let allMatch = true;
+      for (const key of fields) {
+        const submitted = (data as Record<string, unknown>)[key];
+        const persisted = (row as unknown as Record<string, unknown>)[key];
+        submittedValues[key] = submitted;
+        persistedValues[key] = persisted;
+        if (submitted !== persisted) {
+          allMatch = false;
+        }
+      }
+      if (!allMatch) {
+        console.error('[profile] value mismatch:', { submittedValues, persistedValues, whereId: existing.id });
+        return null;
+      }
+    }
+
     return row ?? null;
   } finally {
     conn.close();

@@ -185,7 +185,7 @@ export function ProfileSettings({
         errors?: Record<string, string>;
       };
 
-      setNotice(payload.message ?? 'Profile saved.');
+      setNotice(payload.message ?? 'Profile saved successfully.');
     } catch {
       setError('Network error while saving the profile.');
     } finally {
