@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft, Calendar, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { PostTypeBadge } from '@/components/shared/post-type-badge';
+import { Gallery, parseGalleryUrls } from '@/components/public/gallery';
 import { getPostBySlug, getPosts } from '@/lib/data/content';
 
 export const dynamic = 'force-dynamic';
@@ -91,7 +92,30 @@ export default async function BlogPostPage({ params }: PageProps) {
               </span>
             ) : null}
           </div>
+
+          {post.cover_image_url && (
+            <div className="mt-10 rounded-2xl overflow-hidden border border-border shadow-sm">
+              <img
+                src={post.cover_image_url}
+                alt={post.title}
+                className="w-full h-auto object-cover"
+                loading="lazy"
+              />
+            </div>
+          )}
         </header>
+
+        {post.gallery_urls && (
+          <div className="mt-12 space-y-4">
+            <h3 className="font-display text-lg font-semibold tracking-tight text-foreground">
+              Media gallery
+            </h3>
+            <Gallery
+              items={parseGalleryUrls(post.gallery_urls)}
+              className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+            />
+          </div>
+        )}
 
         <div className="mt-12 space-y-5 border-t border-border/70 pt-10 text-[15px] leading-[1.75] text-foreground/90">
           {paragraphs.length > 0 ? (

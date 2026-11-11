@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft, ExternalLink, Github, Calendar, Tag } from 'lucide-react';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { getProjectBySlug, getProjects } from '@/lib/data/content';
+import { Gallery, parseGalleryUrls } from '@/components/public/gallery';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,6 +99,17 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           </div>
         </header>
 
+        {project.cover_image_url && (
+          <div className="mt-10 rounded-2xl overflow-hidden border border-border shadow-sm">
+            <img
+              src={project.cover_image_url}
+              alt={project.title}
+              className="w-full h-auto object-cover"
+              loading="lazy"
+            />
+          </div>
+        )}
+
         <div className="mt-14 grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-8">
             {project.description ? (
@@ -110,6 +122,18 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               <p className="text-sm text-muted-foreground">
                 Detailed notes for this project are still being written.
               </p>
+            )}
+
+            {project.gallery_urls && (
+              <div className="mt-12 space-y-4">
+                <h3 className="font-display text-lg font-semibold tracking-tight text-foreground">
+                  Media gallery
+                </h3>
+                <Gallery
+                  items={parseGalleryUrls(project.gallery_urls)}
+                  className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+                />
+              </div>
             )}
           </div>
 
