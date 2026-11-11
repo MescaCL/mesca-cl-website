@@ -13,11 +13,6 @@ export async function getProfile(): Promise<Profile | null> {
     const row = await conn
       .prepare('SELECT * FROM profiles ORDER BY created_at ASC LIMIT 1')
       .get() as Profile | undefined;
-    console.log('[profile:getProfile] row:', {
-      id: row?.id ?? null,
-      profile_image_url: row?.profile_image_url ?? null,
-      full_name: row?.full_name ?? null,
-    });
     return row ?? null;
   } finally {
     conn.close();
@@ -57,7 +52,11 @@ export async function updateProfile(data: Partial<Profile>): Promise<Profile | n
         submittedValues[key] = submitted;
         persistedValues[key] = persisted;
         if (submitted !== persisted) {
-          allMatch = false;
+          // Treat null and undefined as equivalent — a submitted null should
+          // match a persisted null (e.g. no profile image), and vice versa.
+          if (!(submitted == null && persisted == null)) {
+            allMatch = false;
+          }
         }
       }
       if (!allMatch) {
