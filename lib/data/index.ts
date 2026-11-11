@@ -13,6 +13,11 @@ export async function getProfile(): Promise<Profile | null> {
     const row = await conn
       .prepare('SELECT * FROM profiles ORDER BY created_at ASC LIMIT 1')
       .get() as Profile | undefined;
+    console.log('[profile:getProfile] row:', {
+      id: row?.id ?? null,
+      profile_image_url: row?.profile_image_url ?? null,
+      full_name: row?.full_name ?? null,
+    });
     return row ?? null;
   } finally {
     conn.close();
