@@ -147,11 +147,14 @@ export async function updateProfile(data: Partial<Profile>): Promise<Profile | n
     const submittedValues: Record<string, unknown> = {};
     const persistedValues: Record<string, unknown> = {};
     let allMatch = true;
-    for (const key of setFields) {
-      const submitted = (data as Record<string, unknown>)[key];
-      const persisted = (row as unknown as Record<string, unknown>)[key];
-      submittedValues[key] = submitted;
-      persistedValues[key] = persisted;
+    for (const field of setFields) {
+      // setFields entries are SQL fragments like "profile_image_url = ?";
+      // extract just the column name to look up values in data/row.
+      const column = field.split(' = ')[0];
+      const submitted = (data as Record<string, unknown>)[column];
+      const persisted = (row as unknown as Record<string, unknown>)[column];
+      submittedValues[column] = submitted;
+      persistedValues[column] = persisted;
       if (submitted !== persisted) {
         if (!(submitted == null && persisted == null)) {
           allMatch = false;

@@ -160,6 +160,10 @@ export function ProfileSettings({
   };
 
   const save = async () => {
+    console.log('[profile-settings] save() called', {
+      profile_image_url: form.profile_image_url,
+      profile_image_alt: form.profile_image_alt,
+    });
     setSaving(true);
     setNotice('');
     setError('');
@@ -177,10 +181,18 @@ export function ProfileSettings({
         body.profile_image_url = form.profile_image_url;
       }
 
+      console.log('[profile-settings] PUT payload:', body);
+
       const result = await fetchJsonSafe('/api/admin/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+      });
+
+      console.log('[profile-settings] PUT result:', {
+        ok: result.ok,
+        error: result.error,
+        hasData: !!result.data,
       });
 
       if (!result.ok) {
@@ -193,8 +205,10 @@ export function ProfileSettings({
         errors?: Record<string, string>;
       };
 
+      console.log('[profile-settings] PUT success, setting notice');
       setNotice(payload.message ?? 'Profile saved successfully.');
-    } catch {
+    } catch (err) {
+      console.error('[profile-settings] save() threw:', err);
       setError('Network error while saving the profile.');
     } finally {
       setSaving(false);
@@ -371,10 +385,12 @@ export function ProfileSettings({
                     if (!result.ok) { setError(result.error ?? 'Could not upload the image.'); return; }
                     const payload = result.data as { url?: string; message?: string };
                     if (payload.url) {
-                      setForm((prev) => ({ ...prev, profile_image_url: payload.url ?? null }));
+                      console.log('[profile-settings] upload received URL:', payload.url);
+                      setForm((prev) => ({ ...prev, profile_image_url: payload.url ?? null, profile_image_alt: form.profile_image_alt ?? '' }));
                       // Auto-save the Cloudinary URL to the database immediately.
                       // Without this, the URL lives only in frontend React state and
                       // is never persisted until "Save Changes" is clicked separately.
+                      console.log('[profile-settings] auto-save PUT with profile_image_url:', payload.url);
                       try {
                         const saveResult = await fetchJsonSafe('/api/admin/profile', {
                           method: 'PUT',
@@ -385,6 +401,11 @@ export function ProfileSettings({
                             call_button_visible: form.call_button_visible ? 1 : 0,
                             whatsapp_button_visible: form.whatsapp_button_visible ? 1 : 0,
                           }),
+                        });
+                        console.log('[profile-settings] auto-save PUT result:', {
+                          ok: saveResult.ok,
+                          error: saveResult.error,
+                          hasData: !!saveResult.data,
                         });
                         if (!saveResult.ok) {
                           setError(saveResult.error ?? 'Image uploaded but profile save failed.');
