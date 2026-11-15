@@ -362,7 +362,31 @@ export function ProfileSettings({
                     const result = await fetchJsonSafe('/api/admin/profile', { method: 'POST', body: formData });
                     if (!result.ok) { setError(result.error ?? 'Could not upload the image.'); return; }
                     const payload = result.data as { url?: string; message?: string };
-                    if (payload.url) { setForm((prev) => ({ ...prev, profile_image_url: payload.url ?? null })); setNotice('Image uploaded successfully.'); }
+                    if (payload.url) {
+                      setForm((prev) => ({ ...prev, profile_image_url: payload.url ?? null }));
+                      // Auto-save the Cloudinary URL to the database immediately.
+                      // Without this, the URL lives only in frontend React state and
+                      // is never persisted until "Save Changes" is clicked separately.
+                      try {
+                        const saveResult = await fetchJsonSafe('/api/admin/profile', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            ...form,
+                            profile_image_url: payload.url,
+                            call_button_visible: form.call_button_visible ? 1 : 0,
+                            whatsapp_button_visible: form.whatsapp_button_visible ? 1 : 0,
+                          }),
+                        });
+                        if (!saveResult.ok) {
+                          setError(saveResult.error ?? 'Image uploaded but profile save failed.');
+                          return;
+                        }
+                        setNotice('Image uploaded and saved.');
+                      } catch {
+                        setError('Image uploaded but network error while saving.');
+                      }
+                    }
                   } catch { setError('Network error while uploading the image.'); }
                 }} />
                 Upload photo

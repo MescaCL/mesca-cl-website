@@ -27,45 +27,143 @@ export async function updateProfile(data: Partial<Profile>): Promise<Profile | n
       .get() as { id: string } | undefined;
     if (!existing) return null;
 
-    const fields = Object.keys(data).filter(
-      (key) => key !== 'id' && key !== 'created_at'
-    );
-    if (fields.length > 0) {
-      const setClause = fields.map((key) => `${key} = ?`).join(', ');
-      await conn
-        .prepare(`UPDATE profiles SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
-        .run(...fields.map((key) => (data as Record<string, unknown>)[key]), existing.id);
-      console.log('[profile] UPDATE executed:', { fields, whereId: existing.id });
+    const setFields: string[] = [];
+    const setValues: unknown[] = [];
+
+    if (typeof data?.full_name === 'string') {
+      setFields.push('full_name = ?');
+      setValues.push(data.full_name);
     }
+    if (typeof data?.headline === 'string') {
+      setFields.push('headline = ?');
+      setValues.push(data.headline);
+    }
+    if (typeof data?.supporting_statement === 'string') {
+      setFields.push('supporting_statement = ?');
+      setValues.push(data.supporting_statement);
+    }
+    if (typeof data?.short_bio === 'string') {
+      setFields.push('short_bio = ?');
+      setValues.push(data.short_bio);
+    }
+    if (typeof data?.full_bio === 'string') {
+      setFields.push('full_bio = ?');
+      setValues.push(data.full_bio);
+    }
+    if (typeof data?.email === 'string') {
+      setFields.push('email = ?');
+      setValues.push(data.email);
+    }
+    if (typeof data?.phone_number === 'string') {
+      setFields.push('phone_number = ?');
+      setValues.push(data.phone_number);
+    }
+    if (typeof data?.whatsapp_number === 'string') {
+      setFields.push('whatsapp_number = ?');
+      setValues.push(data.whatsapp_number);
+    }
+    if (typeof data?.call_button_label === 'string') {
+      setFields.push('call_button_label = ?');
+      setValues.push(data.call_button_label);
+    }
+    if (typeof data?.whatsapp_button_label === 'string') {
+      setFields.push('whatsapp_button_label = ?');
+      setValues.push(data.whatsapp_button_label);
+    }
+    if (typeof data?.whatsapp_preset_message === 'string') {
+      setFields.push('whatsapp_preset_message = ?');
+      setValues.push(data.whatsapp_preset_message);
+    }
+    if (typeof data?.location === 'string') {
+      setFields.push('location = ?');
+      setValues.push(data.location);
+    }
+    if (typeof data?.call_button_visible === 'boolean') {
+      setFields.push('call_button_visible = ?');
+      setValues.push(data.call_button_visible ? 1 : 0);
+    }
+    if (typeof data?.whatsapp_button_visible === 'boolean') {
+      setFields.push('whatsapp_button_visible = ?');
+      setValues.push(data.whatsapp_button_visible ? 1 : 0);
+    }
+    if (typeof data?.profile_image_url === 'string') {
+      setFields.push('profile_image_url = ?');
+      setValues.push(data.profile_image_url);
+    } else if (data?.profile_image_url === null) {
+      setFields.push('profile_image_url = ?');
+      setValues.push(null);
+    }
+    if (typeof data?.profile_image_alt === 'string') {
+      setFields.push('profile_image_alt = ?');
+      setValues.push(data.profile_image_alt);
+    } else if (data?.profile_image_alt === null) {
+      setFields.push('profile_image_alt = ?');
+      setValues.push(null);
+    }
+    if (typeof data?.hero_eyebrow === 'string') {
+      setFields.push('hero_eyebrow = ?');
+      setValues.push(data.hero_eyebrow);
+    }
+    if (typeof data?.hero_primary_cta_label === 'string') {
+      setFields.push('hero_primary_cta_label = ?');
+      setValues.push(data.hero_primary_cta_label);
+    }
+    if (typeof data?.hero_primary_cta_url === 'string') {
+      setFields.push('hero_primary_cta_url = ?');
+      setValues.push(data.hero_primary_cta_url);
+    }
+    if (typeof data?.hero_secondary_cta_label === 'string') {
+      setFields.push('hero_secondary_cta_label = ?');
+      setValues.push(data.hero_secondary_cta_label);
+    }
+    if (typeof data?.hero_secondary_cta_url === 'string') {
+      setFields.push('hero_secondary_cta_url = ?');
+      setValues.push(data.hero_secondary_cta_url);
+    }
+    if (typeof data?.call_button_visible === 'number') {
+      setFields.push('call_button_visible = ?');
+      setValues.push(data.call_button_visible);
+    }
+    if (typeof data?.whatsapp_button_visible === 'number') {
+      setFields.push('whatsapp_button_visible = ?');
+      setValues.push(data.whatsapp_button_visible);
+    }
+    if (setFields.length > 0) {
+      setValues.push(existing.id);
+      await conn
+        .prepare(`UPDATE profiles SET ${setFields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+        .run(...setValues);
+      console.log('[profile] UPDATE executed:', { fields: setFields, whereId: existing.id });
+    }
+
     const row = await conn
       .prepare('SELECT * FROM profiles WHERE id = ?')
       .get(existing.id) as Profile | undefined;
-    console.log('[profile] read back:', { profileImageUrl: row?.profile_image_url ?? null, id: row?.id ?? null });
 
-    if (fields.length > 0 && row) {
-      const submittedValues: Record<string, unknown> = {};
-      const persistedValues: Record<string, unknown> = {};
-      let allMatch = true;
-      for (const key of fields) {
-        const submitted = (data as Record<string, unknown>)[key];
-        const persisted = (row as unknown as Record<string, unknown>)[key];
-        submittedValues[key] = submitted;
-        persistedValues[key] = persisted;
-        if (submitted !== persisted) {
-          // Treat null and undefined as equivalent — a submitted null should
-          // match a persisted null (e.g. no profile image), and vice versa.
-          if (!(submitted == null && persisted == null)) {
-            allMatch = false;
-          }
-        }
-      }
-      if (!allMatch) {
-        console.error('[profile] value mismatch:', { submittedValues, persistedValues, whereId: existing.id });
-        return null;
-      }
+    if (!row) {
+      return null;
     }
 
-    return row ?? null;
+    const submittedValues: Record<string, unknown> = {};
+    const persistedValues: Record<string, unknown> = {};
+    let allMatch = true;
+    for (const key of setFields) {
+      const submitted = (data as Record<string, unknown>)[key];
+      const persisted = (row as unknown as Record<string, unknown>)[key];
+      submittedValues[key] = submitted;
+      persistedValues[key] = persisted;
+      if (submitted !== persisted) {
+        if (!(submitted == null && persisted == null)) {
+          allMatch = false;
+        }
+      }
+    }
+    if (!allMatch) {
+      console.error('[profile] value mismatch:', { submittedValues, persistedValues, whereId: existing.id });
+      return null;
+    }
+
+    return row;
   } finally {
     conn.close();
   }

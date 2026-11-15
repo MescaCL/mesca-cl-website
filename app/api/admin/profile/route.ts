@@ -62,7 +62,7 @@ export async function PUT(request: Request) {
   const payload: Record<string, unknown> = {};
   for (const key of allowed) {
     if (key in body) {
-      payload[key] = body[key] === '' ? null : body[key];
+      payload[key] = body[key];
     }
   }
 
