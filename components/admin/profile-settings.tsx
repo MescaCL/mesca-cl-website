@@ -165,14 +165,22 @@ export function ProfileSettings({
     setError('');
 
     try {
+      const body: Record<string, unknown> = {
+        ...form,
+        call_button_visible: form.call_button_visible ? 1 : 0,
+        whatsapp_button_visible: form.whatsapp_button_visible ? 1 : 0,
+      };
+
+      // Always include profile_image_url in the payload so the database
+      // is updated with whatever the form currently holds (URL, null, or empty string).
+      if (form.profile_image_url !== undefined) {
+        body.profile_image_url = form.profile_image_url;
+      }
+
       const result = await fetchJsonSafe('/api/admin/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          call_button_visible: form.call_button_visible ? 1 : 0,
-          whatsapp_button_visible: form.whatsapp_button_visible ? 1 : 0,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!result.ok) {
@@ -190,7 +198,7 @@ export function ProfileSettings({
       setError('Network error while saving the profile.');
     } finally {
       setSaving(false);
-  };
+    }
   };
 
   if (loading) {
