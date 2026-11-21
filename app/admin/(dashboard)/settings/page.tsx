@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProfileSettings } from '@/components/admin/profile-settings';
 import { useCurrentHash } from '@/components/admin/use-current-hash';
-import { Loader2, Save, Upload, Image as LucideImage } from 'lucide-react';
+import { Loader2, Save, Upload, X } from 'lucide-react';
 
 type Section = 'site' | 'hero' | 'profile-image' | 'profile-details';
 
@@ -129,12 +129,14 @@ export default function AdminSettingsPage() {
   const [section, setSection] = useState<Section>('site');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [imageNotice, setImageNotice] = useState('');
+  const [imageError, setImageError] = useState('');
 
   const [siteValues, setSiteValues] = useState<Record<string, string | null>>({ ...EMPTY_SITE });
   const [profile, setProfile] = useState<ProfileForm>({ ...EMPTY_PROFILE });
-  const [uploading, setUploading] = useState(false);
 
   const currentHash = useCurrentHash();
 
@@ -317,31 +319,76 @@ export default function AdminSettingsPage() {
   }, [profile]);
 
   const handleImageUpload = async (file: File) => {
-    setUploading(true);
-    setError('');
+    setImageError('');
+    setImageNotice('');
+    setRemoving(false);
     try {
       const formData = new FormData();
       formData.append('image', file);
       formData.append('alt', profile.profile_image_alt ?? '');
       const result = await fetchJsonSafe('/api/admin/profile', { method: 'POST', body: formData });
       if (!result.ok) {
-        const payload = result.data as { message?: string } | undefined;
+        const payload = result.data as { message?: string };
+
+        // If the server returned an error, it may have partially saved the
+        // URL. Read back the profile to check whether the image was actually
+        // persisted, so the UI reflects the true state.
+        if (payload?.message?.includes('Could not update profile with image') || !result.ok) {
+          try {
+            const verify = await fetchJsonSafe('/api/admin/profile');
+            if (verify.ok) {
+              const vp = verify.data as { data?: { profile_image_url?: string | null } };
+              if (vp.data?.profile_image_url) {
+                setProfile((prev) => ({ ...prev, profile_image_url: vp.data?.profile_image_url ?? null }));
+                setImageNotice('Image saved by the server despite an error message.');
+                return;
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+
         throw new Error(payload?.message || 'Could not upload the image.');
       }
       const payload = result.data as { url?: string; message?: string };
       if (payload.url) {
         setProfile((prev) => ({ ...prev, profile_image_url: payload.url ?? null }));
-        setNotice('Image uploaded successfully.');
+        setImageNotice('Image uploaded and saved successfully.');
+      } else {
+        throw new Error('Upload succeeded but no URL was returned.');
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Network error while uploading the image.');
-    } finally {
-      setUploading(false);
+      setImageError(e instanceof Error ? e.message : 'Network error while uploading the image.');
     }
   };
 
-  const removeImage = useCallback(() => {
-    setProfile((prev) => ({ ...prev, profile_image_url: null, profile_image_alt: '' }));
+  const removeImage = useCallback(async () => {
+    if (!window.confirm('Remove your profile photograph? This cannot be undone.')) return;
+
+    setRemoving(true);
+    setImageError('');
+    setImageNotice('');
+    try {
+      const result = await fetchJsonSafe('/api/admin/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile_image_url: null,
+          profile_image_alt: '',
+        }),
+      });
+      if (!result.ok) {
+        const payload = result.data as { message?: string };
+        throw new Error(payload?.message || 'Could not remove the image.');
+      }
+      setProfile((prev) => ({ ...prev, profile_image_url: null, profile_image_alt: '' }));
+      setImageNotice('Photograph removed successfully.');
+    } catch (e) {
+      setImageError(e instanceof Error ? e.message : 'Network error while removing the image.');
+    } finally {
+      setRemoving(false);
+    }
   }, []);
 
   return (
@@ -457,9 +504,7 @@ export default function AdminSettingsPage() {
               </div>
             </section>
           )}
-          {section === 'profile-details' && (
-            <ProfileSettings hideImageUpload />
-          )}
+          {section === 'profile-details' && <ProfileSettings />}
 
           {section === 'profile-image' && (
             <div className="space-y-6" id="profile-image">
@@ -469,48 +514,38 @@ export default function AdminSettingsPage() {
                   Upload, replace, or remove your portrait photograph.
                 </p>
 
-                <div className="mt-6 flex items-start gap-4">
-                  <div className="flex flex-col items-center gap-3">
+                <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start">
+                  <div className="flex flex-col items-center gap-4">
                     {profile.profile_image_url ? (
-                      <>
+                      <div className="relative">
                         <img
                           src={profile.profile_image_url}
                           alt={profile.profile_image_alt ?? 'Profile photo'}
-                          className="w-32 h-32 rounded-full object-cover border border-border"
+                          className="w-36 h-36 rounded-full object-cover border border-border"
+                          loading="eager"
                         />
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={removeImage}
-                          disabled={saving || uploading}
+                          onClick={() => setRemoving(true)}
+                          className="absolute -bottom-2 -right-2"
+                          disabled={removing}
                         >
-                          Remove
+                          <X size={14} />
                         </Button>
-                      </>
+                      </div>
                     ) : (
-                      <div className="w-32 h-32 rounded-full border-2 border-dashed border-border flex items-center justify-center bg-muted/50">
-                        <LucideImage size={48} className="text-muted-foreground" />
+                      <div className="w-36 h-36 rounded-full border-2 border-dashed border-border flex items-center justify-center bg-muted/50">
+                        <Upload size={32} className="text-muted-foreground" />
                       </div>
                     )}
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <Upload size={16} />
-                      {uploading ? 'Uploading...' : 'Upload photo'}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleImageUpload(file);
-                        }}
-                      />
-                    </label>
-                    {profile.profile_image_url && (
-                      <p className="text-xs text-muted-foreground">
-                        Recommended: square photo, at least 400x400px.
-                      </p>
-                    )}
+                    <p className={`text-xs ${profile.profile_image_url ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+                      {profile.profile_image_url
+                        ? 'Uploaded successfully. No action needed.'
+                        : 'Uploading stores the image in persistent media storage.'}
+                    </p>
                   </div>
+
                   <div className="flex-1 space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="profile_image_alt">Alt text</Label>
@@ -518,18 +553,64 @@ export default function AdminSettingsPage() {
                         id="profile_image_alt"
                         value={profile.profile_image_alt ?? ''}
                         onChange={(e) => setProfile((prev) => ({ ...prev, profile_image_alt: e.target.value }))}
-                        placeholder="Portrait photograph"
+                        placeholder="Describe the photo for accessibility"
                       />
                     </div>
-                    <Button onClick={saveImage} disabled={saving || uploading} className="mt-2">
-                      {saving || uploading ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} />}{' '}
-                      Save Changes
-                    </Button>
+
+
+                    {!profile.profile_image_url ? (
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border/60 bg-muted/30 px-4 py-3 transition-colors hover:bg-muted/50">
+                        <Upload size={16} />
+                        <span className="text-sm text-foreground">
+                          {loading ? 'Uploading...' : 'Choose image file'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImageUpload(file);
+                          }}
+                        />
+                      </label>
+                    ) : (
+                      <div className="flex gap-3">
+                        <label className="flex cursor-pointer flex-1 items-center gap-2 rounded-lg border border-dashed border-border/60 bg-muted/30 px-4 py-3 transition-colors hover:bg-muted/50">
+                          <Upload size={16} />
+                          <span className="text-sm text-foreground">
+                            {loading ? 'Uploading...' : 'Replace photograph'}
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageUpload(file);
+                            }}
+                          />
+                        </label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setRemoving(true)}
+                          disabled={removing}
+                        >
+                          <X size={16} />
+                          Remove
+                        </Button>
+                      </div>
+                    )}
+
+                    {imageNotice && (
+                      <p className="text-sm text-emerald-600">{imageNotice}</p>
+                    )}
+                    {imageError && (
+                      <p className="text-sm text-destructive">{imageError}</p>
+                    )}
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Stored in persistent media storage. Changes update across the site.
-                </p>
               </section>
             </div>
           )}

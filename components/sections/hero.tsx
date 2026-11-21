@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { SocialIcon } from '@/components/shared/social-icon';
@@ -10,6 +13,8 @@ interface HeroProps {
 }
 
 export function Hero({ profile, socialLinks }: HeroProps) {
+  const [imageError, setImageError] = useState(false);
+
   const headline = profile?.headline ?? 'Building the future, one project at a time.';
   const supporting =
     profile?.supporting_statement ??
@@ -110,8 +115,14 @@ export function Hero({ profile, socialLinks }: HeroProps) {
 
             <div className="relative h-full w-full overflow-hidden rounded-[1.75rem] border border-border/60 bg-card shadow-2xl shadow-primary/10">
               <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-fuchsia-500/10" />
-              {portrait ? (
-                <img src={portrait} alt={portraitAlt} className="relative h-full w-full object-cover object-top" />
+              {portrait && !imageError ? (
+                <img
+                  src={portrait}
+                  alt={portraitAlt}
+                  className="relative h-full w-full object-cover object-top"
+                  loading="eager"
+                  onError={() => setImageError(true)}
+                />
               ) : (
                 <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/15 to-muted">
                   <span className="font-display text-7xl font-bold text-primary/40">

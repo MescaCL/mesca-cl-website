@@ -94,16 +94,12 @@ async function fetchJsonSafe(url: string, init?: RequestInit): Promise<{ ok: boo
   }
 }
 
-export function ProfileSettings({
-  hideImageUpload = false,
-}: { hideImageUpload?: boolean } = {}) {
+export function ProfileSettings() {
   const [form, setForm] = useState<ProfileForm>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
-  const [pendingImage, setPendingImage] = useState<string | null>(null);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -160,10 +156,6 @@ export function ProfileSettings({
   };
 
   const save = async () => {
-    console.log('[profile-settings] save() called', {
-      profile_image_url: form.profile_image_url,
-      profile_image_alt: form.profile_image_alt,
-    });
     setSaving(true);
     setNotice('');
     setError('');
@@ -175,24 +167,15 @@ export function ProfileSettings({
         whatsapp_button_visible: form.whatsapp_button_visible ? 1 : 0,
       };
 
-      // Always include profile_image_url in the payload so the database
-      // is updated with whatever the form currently holds (URL, null, or empty string).
-      if (form.profile_image_url !== undefined) {
-        body.profile_image_url = form.profile_image_url;
-      }
-
-      console.log('[profile-settings] PUT payload:', body);
+      // Always include profile_image_url and profile_image_alt so the
+      // database reflects the current form state (URL, null, or empty string).
+      body.profile_image_url = form.profile_image_url;
+      body.profile_image_alt = form.profile_image_alt;
 
       const result = await fetchJsonSafe('/api/admin/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-      });
-
-      console.log('[profile-settings] PUT result:', {
-        ok: result.ok,
-        error: result.error,
-        hasData: !!result.data,
       });
 
       if (!result.ok) {
@@ -205,10 +188,8 @@ export function ProfileSettings({
         errors?: Record<string, string>;
       };
 
-      console.log('[profile-settings] PUT success, setting notice');
       setNotice(payload.message ?? 'Profile saved successfully.');
-    } catch (err) {
-      console.error('[profile-settings] save() threw:', err);
+    } catch {
       setError('Network error while saving the profile.');
     } finally {
       setSaving(false);
@@ -354,81 +335,7 @@ export function ProfileSettings({
         </div>
       </section>
 
-      {!hideImageUpload && (
-      <section className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
-        <h2 id="profile-image" className="font-display text-lg font-semibold tracking-tight">Profile image</h2>
-        <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start">
-          <div className="shrink-0">
-            {form.profile_image_url ? (
-              <img src={form.profile_image_url} alt={form.profile_image_alt || 'Profile photo'} className="h-32 w-32 rounded-2xl object-cover ring-1 ring-border" />
-            ) : (
-              <div className="grid h-32 w-32 place-items-center rounded-2xl bg-primary/10 font-display text-3xl font-bold text-primary ring-1 ring-border">
-                {form.full_name ? form.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() : 'MC'}
-              </div>
-            )}
-          </div>
-          <div className="flex-1 space-y-4">
-            <div>
-              <Label htmlFor="profile_image_alt">Alt text</Label>
-              <Input id="profile_image_alt" value={form.profile_image_alt ?? ''} onChange={(event) => set('profile_image_alt', event.target.value)} placeholder="Describe the photo for accessibility" className="mt-2" />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3.5 py-2 text-sm font-medium transition-colors hover:bg-accent">
-                <input type="file" accept="image/*" className="sr-only" onChange={async (event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  const formData = new FormData();
-                  formData.append('image', file);
-                  formData.append('alt', form.profile_image_alt ?? '');
-                  try {
-                    const result = await fetchJsonSafe('/api/admin/profile', { method: 'POST', body: formData });
-                    if (!result.ok) { setError(result.error ?? 'Could not upload the image.'); return; }
-                    const payload = result.data as { url?: string; message?: string };
-                    if (payload.url) {
-                      console.log('[profile-settings] upload received URL:', payload.url);
-                      setForm((prev) => ({ ...prev, profile_image_url: payload.url ?? null, profile_image_alt: form.profile_image_alt ?? '' }));
-                      // Auto-save the Cloudinary URL to the database immediately.
-                      // Without this, the URL lives only in frontend React state and
-                      // is never persisted until "Save Changes" is clicked separately.
-                      console.log('[profile-settings] auto-save PUT with profile_image_url:', payload.url);
-                      try {
-                        const saveResult = await fetchJsonSafe('/api/admin/profile', {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            ...form,
-                            profile_image_url: payload.url,
-                            call_button_visible: form.call_button_visible ? 1 : 0,
-                            whatsapp_button_visible: form.whatsapp_button_visible ? 1 : 0,
-                          }),
-                        });
-                        console.log('[profile-settings] auto-save PUT result:', {
-                          ok: saveResult.ok,
-                          error: saveResult.error,
-                          hasData: !!saveResult.data,
-                        });
-                        if (!saveResult.ok) {
-                          setError(saveResult.error ?? 'Image uploaded but profile save failed.');
-                          return;
-                        }
-                        setNotice('Image uploaded and saved.');
-                      } catch {
-                        setError('Image uploaded but network error while saving.');
-                      }
-                    }
-                  } catch { setError('Network error while uploading the image.'); }
-                }} />
-                Upload photo
-              </label>
-              {form.profile_image_url && (
-                <Button type="button" variant="outline" onClick={() => setForm((prev) => ({ ...prev, profile_image_url: null }))}>Remove</Button>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">Recommended: square photo, at least 400x400px. Stored in persistent media storage.</p>
-          </div>
-        </div>
-      </section>
-      )}
+      
 
       <section className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
         <h2 className="font-display text-lg font-semibold tracking-tight">Floating buttons</h2>
