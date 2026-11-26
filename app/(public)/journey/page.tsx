@@ -2,25 +2,31 @@ import type { Metadata } from 'next';
 import { Milestone, MapPin } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { getMilestones, getNowItems } from '@/lib/data/content';
+import { getPageMetadata } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Journey',
-  description:
-    'The build-up of Mesca CL — from first lines of code to shipped products, AI experiments and entrepreneurial moves.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const meta = await getPageMetadata('journey');
+  return {
+    title: meta.title,
+    description: meta.description,
+  };
+}
+
+export const metadata: Metadata = {};
 
 export default async function JourneyPage() {
+  const meta = await getPageMetadata('journey');
   const milestones = await getMilestones();
   const nowItems = await getNowItems();
 
   return (
     <>
       <PageHeader
-        eyebrow="Journey"
-        title="The road so far"
-        description="Not a highlight reel — the actual sequence of things built, learned, and occasionally broken along the way."
+        eyebrow={meta.eyebrow}
+        title={meta.title}
+        description={meta.description}
       />
 
       <section className="container py-16 md:py-24">

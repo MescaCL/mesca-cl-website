@@ -40,26 +40,8 @@ const routes = createCrudRoutes({
     // Only transform the keys that were actually supplied, so partial
     // updates never wipe out fields the caller did not send.
     const payload: Record<string, unknown> = { ...data };
-    const nullable = [
-      'summary',
-      'description',
-      'category',
-      'technologies',
-      'live_url',
-      'repository_url',
-      'demo_url',
-      'start_date',
-      'last_updated',
-      'cover_image_url',
-      'gallery_urls',
-      'seo_title',
-      'seo_description',
-    ];
-    for (const key of nullable) {
-      if (key in payload) {
-        payload[key] = payload[key] === '' ? null : payload[key];
-      }
-    }
+    // Preserve empty strings — do NOT convert '' to null here.
+    // The individual field handlers manage null where needed.
     if ('featured' in payload) payload.featured = payload.featured ? 1 : 0;
     if ('is_published' in payload) payload.is_published = payload.is_published ? 1 : 0;
     return payload;

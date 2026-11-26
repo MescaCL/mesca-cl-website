@@ -281,3 +281,15 @@ CREATE INDEX IF NOT EXISTS idx_contact_status ON contact_submissions (status, su
 CREATE INDEX IF NOT EXISTS idx_contact_ip ON contact_submissions (ip_address, submitted_at);
 CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs (user_id, created_at);
 
+CREATE TABLE IF NOT EXISTS nav_items (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  label TEXT NOT NULL,
+  url TEXT NOT NULL,
+  sort_order INTEGER DEFAULT 0,
+  is_visible INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_nav_items_visible ON nav_items (is_visible, sort_order);
+

@@ -5,15 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Menu, X, Moon, Sun } from 'lucide-react';
 import { classNames } from '@/components/ui/utils';
+import { getNavItems } from '@/lib/data';
 import type { Profile, SocialLink } from '@/types';
-
-const NAV_ITEMS = [
-  { href: '/', label: 'Home' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/journey', label: 'Journey' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/contact', label: 'Contact' },
-];
 
 interface SiteHeaderProps {
   profile: Profile | null;
@@ -25,6 +18,16 @@ export function SiteHeader({ profile, socialLinks }: SiteHeaderProps) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [navItems, setNavItems] = useState<Array<{ href: string; label: string }>>([]);
+
+  useEffect(() => {
+    (async () => {
+      const items = await getNavItems();
+      setNavItems(items.filter((item) => item.is_visible !== false).map((item) => ({ href: item.url ?? item.label.toLowerCase().replace(/\\s+/g, '-'), label: item.label })));
+    })();
+  }, []);
+
+  useEffect(() => {
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -80,7 +83,7 @@ export function SiteHeader({ profile, socialLinks }: SiteHeaderProps) {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -139,7 +142,7 @@ export function SiteHeader({ profile, socialLinks }: SiteHeaderProps) {
         )}
       >
         <nav className="container flex flex-col gap-1 py-4" aria-label="Mobile navigation">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}

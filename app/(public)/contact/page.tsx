@@ -3,28 +3,35 @@ import { Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { ContactForm } from '@/components/contact/contact-form';
 import { SocialIcon } from '@/components/shared/social-icon';
-import { getProfile, getSocialLinks } from '@/lib/data';
+import { getProfile, getSocialLinks, getContactResponseTime } from '@/lib/data';
+import { getPageMetadata } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Contact',
-  description:
-    'Get in touch with Mesca CL about collaborations, mentorship, hiring, or just to say hello.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const meta = await getPageMetadata('contact');
+  return {
+    title: meta.title,
+    description: meta.description,
+  };
+}
+
+export const metadata: Metadata = {};
 
 export default async function ContactPage() {
   const profile = await getProfile();
   const socialLinks = await getSocialLinks(true);
+  const responseTime = await getContactResponseTime();
+  const meta = await getPageMetadata('contact');
 
   const whatsappNumber = (profile?.whatsapp_number ?? '').replace(/[^\d]/g, '');
 
   return (
     <>
       <PageHeader
-        eyebrow="Contact"
-        title="Reach Out to ME"
-        description="If it's for Collaborations, mentorship, freelance work, or just a conversation about what we can or will do. Be it ANYTHING — my inbox is open."
+        eyebrow={meta.eyebrow}
+        title={meta.title}
+        description={meta.description}
       />
 
       <section className="container py-16 md:py-24">
@@ -120,7 +127,7 @@ export default async function ContactPage() {
                     </span>
                     <div>
                       <p className="text-xs text-muted-foreground">Response time</p>
-                      <p className="font-medium">Usually within 2–3 days</p>
+                      <p className="font-medium">{responseTime ?? 'Usually within 2–3 days'}</p>
                     </div>
                   </li>
                 </ul>

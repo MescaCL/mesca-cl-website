@@ -3,25 +3,31 @@ import { PageHeader } from '@/components/layout/page-header';
 import { ProjectCard } from '@/components/shared/project-card';
 import { getCategories } from '@/lib/data';
 import { getProjects } from '@/lib/data/content';
+import { getPageMetadata } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Projects',
-  description:
-    'A portfolio of products, experiments and systems built by Mesca CL across technology, AI and entrepreneurship.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const meta = await getPageMetadata('projects');
+  return {
+    title: meta.title,
+    description: meta.description,
+  };
+}
+
+export const metadata: Metadata = {};
 
 export default async function ProjectsPage() {
+  const meta = await getPageMetadata('projects');
   const projects = await getProjects({ publishedOnly: true });
   const categories = await getCategories();
 
   return (
     <>
       <PageHeader
-        eyebrow="Portfolio"
-        title="Projects & builds"
-        description="Everything I've designed, built, and shipped — plus the things still taking shape."
+        eyebrow={meta.eyebrow}
+        title={meta.title}
+        description={meta.description}
       />
 
       <section className="container pb-20 md:pb-28">

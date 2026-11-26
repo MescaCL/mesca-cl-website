@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { MapPin, Mail, Phone } from 'lucide-react';
 import { SocialIcon } from '@/components/shared/social-icon';
+import { getNavItems } from '@/lib/data';
 import type { Profile, SocialLink } from '@/types';
 
 interface SiteFooterProps {
@@ -11,6 +12,14 @@ interface SiteFooterProps {
 export function SiteFooter({ profile, socialLinks }: SiteFooterProps) {
   const year = new Date().getFullYear();
   const brand = profile?.brand_name ?? 'Mesca CL';
+  const [navItems, setNavItems] = useState<Array{ href: string; label: string }>([]);
+
+  useEffect(() => {
+    (async () => {
+      const items = await getNavItems();
+      setNavItems(items.filter((item) => item.is_visible !== false).map((item) => ({ href: item.url ?? item.label.toLowerCase().replace(/\s+/g, '-'), label: item.label })));
+    })();
+  }, []);
 
   return (
     <footer className="border-t border-border/70 bg-muted/30">

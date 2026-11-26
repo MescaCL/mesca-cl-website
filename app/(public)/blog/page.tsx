@@ -4,15 +4,20 @@ import { ArrowUpRight, PenLine } from 'lucide-react';
 import { format } from 'date-fns';
 import { PageHeader } from '@/components/layout/page-header';
 import { PostTypeBadge } from '@/components/shared/post-type-badge';
+import { getPageMetadata } from '@/lib/data';
 import { getPosts } from '@/lib/data/content';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Blog',
-  description:
-    'Articles, gists and field notes on software, AI, entrepreneurship and building in public by Mesca CL.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const meta = await getPageMetadata('blog');
+  return {
+    title: meta.title,
+    description: meta.description,
+  };
+}
+
+export const metadata: Metadata = {};
 
 export default async function BlogPage() {
   const posts = await getPosts({ publishedOnly: true });
@@ -20,9 +25,9 @@ export default async function BlogPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Writing"
-        title="Blog & field notes"
-        description="Long-form articles, quick gists, and honest notes from the build. New posts when there is something worth saying."
+        eyebrow={meta.eyebrow}
+        title={meta.title}
+        description={meta.description}
       />
 
       <section className="container pb-20 md:pb-28">

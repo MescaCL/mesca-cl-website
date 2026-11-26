@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { SocialIcon } from '@/components/shared/social-icon';
 import { classNames } from '@/components/ui/utils';
+import { getHomepageMetadata } from '@/lib/data';
 import type { Profile, SocialLink } from '@/types';
 
 interface HeroProps {
@@ -13,13 +14,23 @@ interface HeroProps {
 }
 
 export function Hero({ profile, socialLinks }: HeroProps) {
-  const [imageError, setImageError] = useState(false);
+  const [metadata, setMetadata] = useState<{ eyebrow: string; title: string; description: string } | null>(
+    null
+  );
+  const [loading, setLoading] = useState(true);
 
-  const headline = profile?.headline ?? 'Building the future, one project at a time.';
+  useEffect(() => {
+    (async () => {
+      const meta = await getHomepageMetadata();
+      setMetadata(meta);
+      setLoading(false);
+    })();
+  }, []);
+
+  const headline = metadata?.title ?? profile?.headline ?? 'Building the future, one project at a time.';
   const supporting =
-    profile?.supporting_statement ??
-    'Documenting my journey in technology, AI, and entrepreneurship — one build at a time.';
-  const eyebrow = profile?.hero_eyebrow ?? 'Builder · Engineer · Founder';
+    metadata?.description ?? profile?.supporting_statement ?? 'Documenting my journey in technology, AI, and entrepreneurship — one build at a time.';
+  const eyebrow = metadata?.eyebrow ?? profile?.hero_eyebrow ?? 'Builder · Engineer · Founder';
   const primaryLabel = profile?.hero_primary_cta_label ?? 'View my work';
   const primaryUrl = profile?.hero_primary_cta_url ?? '/projects';
   const secondaryLabel = profile?.hero_secondary_cta_label ?? 'Start a conversation';

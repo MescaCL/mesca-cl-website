@@ -79,6 +79,9 @@ const EMPTY_SITE: Record<string, string | null> = {
   social_email_url: null,
   default_cover_image: null,
   default_cover_alt: null,
+  homepage_eyebrow: null,
+  homepage_title: null,
+  homepage_description: null,
 };
 
 async function apiJson(url: string, init?: RequestInit): Promise<Response> {
@@ -456,6 +459,18 @@ export default function AdminSettingsPage() {
                   <Label htmlFor="contact_email">Contact email</Label>
                   <Input id="contact_email" type="email" value={siteValues.contact_email ?? ''} onChange={(e) => setSiteValues((prev) => ({ ...prev, contact_email: e.target.value }))} />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="homepage_eyebrow">Homepage eyebrow</Label>
+                  <Input id="homepage_eyebrow" value={siteValues.homepage_eyebrow ?? ''} onChange={(e) => setSiteValues((prev) => ({ ...prev, homepage_eyebrow: e.target.value }))} placeholder="Builder · Engineer · Founder" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="homepage_title">Homepage title</Label>
+                  <Input id="homepage_title" value={siteValues.homepage_title ?? ''} onChange={(e) => setSiteValues((prev) => ({ ...prev, homepage_title: e.target.value }))} /> <small className="text-muted-foreground text-xs">Displayed as the main headline on the homepage</small>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="homepage_description">Homepage description</Label>
+                  <Input id="homepage_description" value={siteValues.homepage_description ?? ''} onChange={(e) => setSiteValues((prev) => ({ ...prev, homepage_description: e.target.value }))} /> <small className="text-muted-foreground text-xs">Displayed below the title on the homepage</small>
+                </div>
               </div>
 
               <div className="mt-6 flex justify-end">
@@ -594,7 +609,29 @@ export default function AdminSettingsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setRemoving(true)}
+                          onClick={async () => {
+                            setRemoving(true);
+                            setImageNotice('');
+                            setImageError('');
+                            try {
+                              const result = await fetchJsonSafe('/api/admin/profile', {
+                                method: 'PUT',
+                                body: JSON.stringify({
+                                  profile_image_url: null,
+                                  profile_image_alt: '',
+                                }),
+                              });
+                              if (!result.ok) {
+                                const payload = result.data as { message?: string } | undefined;
+                                throw new Error(payload?.message || 'Could not remove image.');
+                              }
+                              setNotice('Profile image removed.');
+                              setRemoving(false);
+                            } catch (e) {
+                              setImageError(e instanceof Error ? e.message : 'Failed to remove image.');
+                              setRemoving(false);
+                            }
+                          }}
                           disabled={removing}
                         >
                           <X size={16} />

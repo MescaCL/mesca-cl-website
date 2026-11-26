@@ -10,6 +10,7 @@ const ALLOWED_KEYS = new Set([
   // Homepage
   'hero_eyebrow', 'hero_primary_cta_label', 'hero_primary_cta_url',
   'hero_secondary_cta_label', 'hero_secondary_cta_url', 'hero_secondary_email',
+  'homepage_eyebrow', 'homepage_title', 'homepage_description',
   // Social
   'social_x_url', 'social_github_url', 'social_linkedin_url', 'social_email_url',
   // Media

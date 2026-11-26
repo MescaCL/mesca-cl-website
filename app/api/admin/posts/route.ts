@@ -35,23 +35,8 @@ const routes = createCrudRoutes({
   resourceType: 'post',
   transform: (data) => {
     const payload: Record<string, unknown> = { ...data };
-    const nullable = [
-      'excerpt',
-      'content',
-      'category',
-      'tags',
-      'published_at',
-      'scheduled_at',
-      'cover_image_url',
-      'gallery_urls',
-      'seo_title',
-      'seo_description',
-    ];
-    for (const key of nullable) {
-      if (key in payload) {
-        payload[key] = payload[key] === '' ? null : payload[key];
-      }
-    }
+    // Preserve empty strings — do NOT convert '' to null here.
+    // The individual field handlers (e.g. email validation) already manage null.
     if ('featured' in payload) payload.featured = payload.featured ? 1 : 0;
     return payload;
   },
