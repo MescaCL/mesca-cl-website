@@ -14,8 +14,6 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export const metadata: Metadata = {};
-
 export default async function JourneyPage() {
   const meta = await getPageMetadata('journey');
   const milestones = await getMilestones();

@@ -18,6 +18,7 @@ export function Hero({ profile, socialLinks }: HeroProps) {
     null
   );
   const [loading, setLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     (async () => {

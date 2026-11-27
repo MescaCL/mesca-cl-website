@@ -16,8 +16,6 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export const metadata: Metadata = {};
-
 export default async function ContactPage() {
   const profile = await getProfile();
   const socialLinks = await getSocialLinks(true);

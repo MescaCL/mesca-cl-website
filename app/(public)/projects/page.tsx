@@ -15,8 +15,6 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export const metadata: Metadata = {};
-
 export default async function ProjectsPage() {
   const meta = await getPageMetadata('projects');
   const projects = await getProjects({ publishedOnly: true });

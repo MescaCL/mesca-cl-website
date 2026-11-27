@@ -23,11 +23,9 @@ export function SiteHeader({ profile, socialLinks }: SiteHeaderProps) {
   useEffect(() => {
     (async () => {
       const items = await getNavItems();
-      setNavItems(items.filter((item) => item.is_visible !== false).map((item) => ({ href: item.url ?? item.label.toLowerCase().replace(/\\s+/g, '-'), label: item.label })));
+      setNavItems(items.filter((item) => item.is_visible).map((item) => ({ href: item.url ?? item.label.toLowerCase().replace(/\\s+/g, '-'), label: item.label })));
     })();
   }, []);
-
-  useEffect(() => {
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);

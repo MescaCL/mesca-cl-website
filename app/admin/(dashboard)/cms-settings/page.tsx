@@ -309,4 +309,7 @@ export default function AdminCmsSettingsPage() {
             </Button>
           </div>
         </CardContent>
-      </Card>  </div>
+      </Card>
+    </div>
+  );
+}
